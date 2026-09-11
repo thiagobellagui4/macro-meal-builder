@@ -41,7 +41,7 @@ if (searchBtn) {
   });
 }
 
-// 3. Função principal para buscar alimento na API do Open Food Facts
+// 3. Função principal para buscar alimento na API
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -55,18 +55,21 @@ async function buscarEAdicionar() {
   searchBtn.disabled = true;
 
   try {
-    const apiUrl = `https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`;
-    const response = await fetch(apiUrl);
+    // API de busca global da Open Food Facts (v2)
+    const apiUrl = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=${encodeURIComponent(termo)}&fields=product_name,product_name_pt,nutriments&page_size=5`;
     
-    if (!response.ok) {
-      throw new Error(`Erro HTTP: ${response.status}`);
+    let response = await fetch(apiUrl);
+    let data = await response.json();
+
+    // Busca secundária caso a busca por categoria não traga resultados
+    if (!data.products || data.products.length === 0) {
+      const fallbackUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`;
+      response = await fetch(fallbackUrl);
+      data = await response.json();
     }
 
-    const data = await response.json();
-
     if (data.products && data.products.length > 0) {
-      const produto = data.products.find(p => p.nutriments && (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments.proteins_100g !== undefined)) || data.products[0];
-      
+      const produto = data.products[0];
       const nutriments = produto.nutriments || {};
       const fator = gramas / 100;
 
@@ -89,11 +92,11 @@ async function buscarEAdicionar() {
       salvarEAtualizar();
       foodInput.value = '';
     } else {
-      alert("Nenhum alimento encontrado. Tente um termo mais simples (ex: Banana, Frango).");
+      alert("Alimento não encontrado. Tente um termo mais simples.");
     }
   } catch (erro) {
     console.error("Erro na busca:", erro);
-    alert("Não foi possível conectar com o banco de dados. Tente novamente em alguns instantes.");
+    alert("Erro ao conectar à API. Verifique sua conexão e tente novamente.");
   } finally {
     searchBtn.textContent = "Buscar e Adicionar";
     searchBtn.disabled = false;
@@ -112,7 +115,7 @@ function salvarEAtualizar() {
   atualizarTela();
 }
 
-// 6. Atualiza a tabela de refeições e o Dashboard de Totais
+// 6. Atualiza a tabela de refeições e o Dashboard
 function atualizarTela() {
   if (mealsTableBody) {
     mealsTableBody.innerHTML = '';
@@ -150,7 +153,7 @@ function atualizarTela() {
   if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
 }
 
-// 7. Atualiza exibição das Metas Diárias no Dashboard
+// 7. Atualiza exibição das Metas Diárias
 function atualizarMetasNaTela() {
   const targetKcal = document.getElementById('target-kcal-label');
   const targetCarb = document.getElementById('target-carb-label');
