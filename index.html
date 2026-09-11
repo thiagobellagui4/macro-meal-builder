@@ -1,1 +1,216 @@
 
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Macro Meal Builder</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --card-bg: #1e1e1e;
+      --accent: #2e7d32;
+      --accent-hover: #388e3c;
+      --text: #ffffff;
+      --subtext: #a0a0a0;
+      --border: #333333;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+      margin: 0;
+      padding: 16px;
+      padding-bottom: 30px;
+    }
+    h1 { font-size: 1.5rem; margin-bottom: 16px; }
+    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
+    .card {
+      background-color: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 14px;
+    }
+    .full-width { grid-column: span 2; }
+    .val { font-size: 1.4rem; font-weight: bold; margin-top: 4px; }
+    .sub { font-size: 0.8rem; color: var(--subtext); }
+    
+    label { display: block; margin-top: 10px; font-size: 0.9rem; color: var(--subtext); }
+    select, input, button {
+      width: 100%;
+      padding: 12px;
+      margin-top: 6px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      background-color: #2a2a2a;
+      color: var(--text);
+      box-sizing: border-box;
+      font-size: 1rem;
+    }
+    button {
+      background-color: var(--accent);
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 14px;
+    }
+    button:active { background-color: var(--accent-hover); }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+    th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); }
+    th { color: var(--subtext); }
+    .btn-del {
+      background: none; border: none; color: #ff5252;
+      padding: 0; margin: 0; width: auto; font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Meal Builder</h1>
+
+  <!-- Dashboard de Macros -->
+  <div class="grid">
+    <div class="card full-width">
+      <div class="sub">Energy total</div>
+      <div class="val" id="kcal-val">0 kcal</div>
+      <div class="sub">Daily target around 1,800 kcal</div>
+    </div>
+    <div class="card">
+      <div class="sub">Carbohydrates</div>
+      <div class="val" id="carb-val">0 g</div>
+    </div>
+    <div class="card">
+      <div class="sub">Protein</div>
+      <div class="val" id="prot-val">0 g</div>
+      <div class="sub">Goal: 130g+ daily</div>
+    </div>
+    <div class="card full-width">
+      <div class="sub">Total fat</div>
+      <div class="val" id="fat-val">0 g</div>
+    </div>
+  </div>
+
+  <!-- Formulário de Adição -->
+  <div class="card">
+    <h3>Adicionar Alimento</h3>
+    <label>Selecione o alimento</label>
+    <select id="food-select"></select>
+
+    <label>Quantidade em gramas</label>
+    <input type="number" id="food-grams" value="150">
+
+    <button onclick="addPortion()">+ Adicionar ao prato</button>
+  </div>
+
+  <!-- Prato Ativo -->
+  <div class="card" style="margin-top: 20px;">
+    <h3>Itens do Prato</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>(g)</th>
+          <th>kcal</th>
+          <th>P</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="plate-table"></tbody>
+    </table>
+    <button onclick="clearPlate()" style="background-color: #444; margin-top: 15px;">Limpar Prato</button>
+  </div>
+
+  <script>
+    // Base de Alimentos (Valores de referência por 100g)
+    const foodDatabase = [
+      { id: 1, name: "Filé de frango", kcal: 166.6, carb: 0, prot: 30.6, fat: 3.6 },
+      { id: 2, name: "Carne moída", kcal: 213.3, carb: 0, prot: 26, fat: 11.3 },
+      { id: 3, name: "Filé de tilápia", kcal: 126.6, carb: 0, prot: 25.3, fat: 2.6 },
+      { id: 4, name: "Carne suína", kcal: 200, carb: 0, prot: 28.6, fat: 8.6 },
+      { id: 5, name: "Arroz branco", kcal: 130, carb: 28, prot: 2.5, fat: 0.3 },
+      { id: 6, name: "Refogados", kcal: 36.6, carb: 7.3, prot: 1.3, fat: 0.3 },
+      { id: 7, name: "Queijo muçarela", kcal: 262.5, carb: 2.5, prot: 22.5, fat: 25 }
+    ];
+
+    let activePlate = JSON.parse(localStorage.getItem('macro_plate')) || [];
+
+    // Inicializa o seletor
+    const selectEl = document.getElementById('food-select');
+    foodDatabase.forEach((item, index) => {
+      let opt = document.createElement('option');
+      opt.value = index;
+      opt.textContent = item.name;
+      selectEl.appendChild(opt);
+    });
+
+    function addPortion() {
+      const foodIndex = selectEl.value;
+      const grams = parseFloat(document.getElementById('food-grams').value) || 0;
+      if (grams <= 0) return;
+
+      const base = foodDatabase[foodIndex];
+      const factor = grams / 100;
+
+      const item = {
+        id: Date.now(),
+        name: base.name,
+        grams: grams,
+        kcal: base.kcal * factor,
+        carb: base.carb * factor,
+        prot: base.prot * factor,
+        fat: base.fat * factor
+      };
+
+      activePlate.push(item);
+      saveAndUpdate();
+    }
+
+    function removeItem(id) {
+      activePlate = activePlate.filter(item => item.id !== id);
+      saveAndUpdate();
+    }
+
+    function clearPlate() {
+      activePlate = [];
+      saveAndUpdate();
+    }
+
+    function saveAndUpdate() {
+      localStorage.setItem('macro_plate', JSON.stringify(activePlate));
+      render();
+    }
+
+    function render() {
+      const tableBody = document.getElementById('plate-table');
+      tableBody.innerHTML = '';
+
+      let totals = { kcal: 0, carb: 0, prot: 0, fat: 0 };
+
+      activePlate.forEach(item => {
+        totals.kcal += item.kcal;
+        totals.carb += item.carb;
+        totals.prot += item.prot;
+        totals.fat += item.fat;
+
+        let row = document.createElement('tr');
+        row.innerHTML = `
+          <td>${item.name}</td>
+          <td>${item.grams}</td>
+          <td>${item.kcal.toFixed(1)}</td>
+          <td>${item.prot.toFixed(1)}g</td>
+          <td><button class="btn-del" onclick="removeItem(${item.id})">✕</button></td>
+        `;
+        tableBody.appendChild(row);
+      });
+
+      document.getElementById('kcal-val').textContent = `${totals.kcal.toFixed(1)} kcal`;
+      document.getElementById('carb-val').textContent = `${totals.carb.toFixed(1)} g`;
+      document.getElementById('prot-val').textContent = `${totals.prot.toFixed(1)} g`;
+      document.getElementById('fat-val').textContent = `${totals.fat.toFixed(1)} g`;
+    }
+
+    render();
+  </script>
+</body>
+</html>
