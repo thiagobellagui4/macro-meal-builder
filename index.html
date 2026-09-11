@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -24,18 +23,20 @@
       padding-bottom: 30px;
     }
     h1 { font-size: 1.5rem; margin-bottom: 16px; }
+    h3 { margin-top: 0; margin-bottom: 12px; font-size: 1.1rem; }
     .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
     .card {
       background-color: var(--card-bg);
       border: 1px solid var(--border);
       border-radius: 8px;
       padding: 14px;
+      margin-bottom: 16px;
     }
     .full-width { grid-column: span 2; }
     .val { font-size: 1.4rem; font-weight: bold; margin-top: 4px; }
     .sub { font-size: 0.8rem; color: var(--subtext); }
     
-    label { display: block; margin-top: 10px; font-size: 0.9rem; color: var(--subtext); }
+    label { display: block; margin-top: 10px; font-size: 0.85rem; color: var(--subtext); }
     select, input, button {
       width: 100%;
       padding: 12px;
@@ -45,7 +46,7 @@
       background-color: #2a2a2a;
       color: var(--text);
       box-sizing: border-box;
-      font-size: 1rem;
+      font-size: 0.95rem;
     }
     button {
       background-color: var(--accent);
@@ -62,6 +63,11 @@
     .btn-del {
       background: none; border: none; color: #ff5252;
       padding: 0; margin: 0; width: auto; font-weight: bold;
+    }
+    .grid-inputs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
     }
   </style>
 </head>
@@ -91,9 +97,9 @@
     </div>
   </div>
 
-  <!-- Formulário de Adição -->
+  <!-- Formulário de Adição ao Prato -->
   <div class="card">
-    <h3>Adicionar Alimento</h3>
+    <h3>Adicionar ao Prato</h3>
     <label>Selecione o alimento</label>
     <select id="food-select"></select>
 
@@ -104,7 +110,7 @@
   </div>
 
   <!-- Prato Ativo -->
-  <div class="card" style="margin-top: 20px;">
+  <div class="card">
     <h3>Itens do Prato</h3>
     <table>
       <thead>
@@ -121,9 +127,37 @@
     <button onclick="clearPlate()" style="background-color: #444; margin-top: 15px;">Limpar Prato</button>
   </div>
 
+  <!-- Cadastrar Novo Alimento na Base -->
+  <div class="card">
+    <h3>Cadastrar Novo Alimento</h3>
+    <label>Nome do Alimento</label>
+    <input type="text" id="new-name" placeholder="Ex: Patinho moído">
+
+    <div class="grid-inputs">
+      <div>
+        <label>Calorias / 100g</label>
+        <input type="number" id="new-kcal" placeholder="kcal">
+      </div>
+      <div>
+        <label>Proteína / 100g</label>
+        <input type="number" id="new-prot" placeholder="g">
+      </div>
+      <div>
+        <label>Carboidrato / 100g</label>
+        <input type="number" id="new-carb" placeholder="g">
+      </div>
+      <div>
+        <label>Gordura / 100g</label>
+        <input type="number" id="new-fat" placeholder="g">
+      </div>
+    </div>
+
+    <button onclick="addNewFood()" style="background-color: #1976d2;">+ Cadastrar Alimento</button>
+  </div>
+
   <script>
-    // Base de Alimentos (Valores de referência por 100g)
-    const foodDatabase = [
+    // Base Padrão de Alimentos
+    const defaultFoods = [
       { id: 1, name: "Filé de frango", kcal: 166.6, carb: 0, prot: 30.6, fat: 3.6 },
       { id: 2, name: "Carne moída", kcal: 213.3, carb: 0, prot: 26, fat: 11.3 },
       { id: 3, name: "Filé de tilápia", kcal: 126.6, carb: 0, prot: 25.3, fat: 2.6 },
@@ -133,23 +167,54 @@
       { id: 7, name: "Queijo muçarela", kcal: 262.5, carb: 2.5, prot: 22.5, fat: 25 }
     ];
 
+    // Carrega alimentos cadastrados ou usa os padrão
+    let customFoods = JSON.parse(localStorage.getItem('macro_custom_foods')) || defaultFoods;
     let activePlate = JSON.parse(localStorage.getItem('macro_plate')) || [];
 
-    // Inicializa o seletor
-    const selectEl = document.getElementById('food-select');
-    foodDatabase.forEach((item, index) => {
-      let opt = document.createElement('option');
-      opt.value = index;
-      opt.textContent = item.name;
-      selectEl.appendChild(opt);
-    });
+    function populateDropdown() {
+      const selectEl = document.getElementById('food-select');
+      selectEl.innerHTML = '';
+      customFoods.forEach((item, index) => {
+        let opt = document.createElement('option');
+        opt.value = index;
+        opt.textContent = item.name;
+        selectEl.appendChild(opt);
+      });
+    }
+
+    function addNewFood() {
+      const name = document.getElementById('new-name').value.trim();
+      const kcal = parseFloat(document.getElementById('new-kcal').value) || 0;
+      const prot = parseFloat(document.getElementById('new-prot').value) || 0;
+      const carb = parseFloat(document.getElementById('new-carb').value) || 0;
+      const fat = parseFloat(document.getElementById('new-fat').value) || 0;
+
+      if (!name) {
+        alert('Digite o nome do alimento!');
+        return;
+      }
+
+      const newObj = { id: Date.now(), name, kcal, carb, prot, fat };
+      customFoods.push(newObj);
+      localStorage.setItem('macro_custom_foods', JSON.stringify(customFoods));
+      
+      // Limpa campos
+      document.getElementById('new-name').value = '';
+      document.getElementById('new-kcal').value = '';
+      document.getElementById('new-prot').value = '';
+      document.getElementById('new-carb').value = '';
+      document.getElementById('new-fat').value = '';
+
+      populateDropdown();
+      alert('Alimento cadastrado com sucesso!');
+    }
 
     function addPortion() {
-      const foodIndex = selectEl.value;
+      const foodIndex = document.getElementById('food-select').value;
       const grams = parseFloat(document.getElementById('food-grams').value) || 0;
-      if (grams <= 0) return;
+      if (grams <= 0 || foodIndex === "") return;
 
-      const base = foodDatabase[foodIndex];
+      const base = customFoods[foodIndex];
       const factor = grams / 100;
 
       const item = {
@@ -210,6 +275,7 @@
       document.getElementById('fat-val').textContent = `${totals.fat.toFixed(1)} g`;
     }
 
+    populateDropdown();
     render();
   </script>
 </body>
