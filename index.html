@@ -76,27 +76,27 @@
 
   <h1>Meal Builder</h1>
 
-  <!-- Dashboard de Macros -->
+  <!-- Dashboard de Macros com Metas -->
   <div class="grid">
     <div class="card full-width">
-      <div class="sub">Energy total</div>
+      <div class="sub">Energia total</div>
       <div class="val" id="kcal-val">0 kcal</div>
-      <div class="sub" id="target-kcal-label">Daily target around 1,800 kcal</div>
+      <div class="sub" id="target-kcal-label">Meta: 1800 kcal</div>
     </div>
     <div class="card">
-      <div class="sub">Carbohydrates</div>
+      <div class="sub">Carboidratos</div>
       <div class="val" id="carb-val">0 g</div>
-      <div class="sub" id="target-carb-label">Goal: --</div>
+      <div class="sub" id="target-carb-label">Meta: 200g</div>
     </div>
     <div class="card">
-      <div class="sub">Protein</div>
+      <div class="sub">Proteínas</div>
       <div class="val" id="prot-val">0 g</div>
-      <div class="sub" id="target-prot-label">Goal: 130g+ daily</div>
+      <div class="sub" id="target-prot-label">Meta: 130g</div>
     </div>
     <div class="card full-width">
-      <div class="sub">Total fat</div>
+      <div class="sub">Gorduras Totais</div>
       <div class="val" id="fat-val">0 g</div>
-      <div class="sub" id="target-fat-label">Goal: --</div>
+      <div class="sub" id="target-fat-label">Meta: 60g</div>
     </div>
   </div>
 
@@ -110,7 +110,7 @@
       <input type="number" id="portion-input" value="100" min="1" placeholder="Gramas">
     </div>
 
-    <button id="search-btn" type="button" onclick="buscarEAdicionar()">Buscar e Adicionar</button>
+    <button id="search-btn" type="button">Buscar e Adicionar</button>
   </div>
 
   <!-- Tabela de Alimentos do Prato -->
@@ -127,7 +127,6 @@
         </tr>
       </thead>
       <tbody id="meals-table-body">
-        <!-- Linhas adicionadas dinamicamente via JS -->
       </tbody>
     </table>
   </div>
