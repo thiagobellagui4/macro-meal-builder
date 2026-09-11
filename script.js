@@ -15,7 +15,7 @@ const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
 const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
 
 let refeicoes = [];
-let metas = { kcal: 1800, carb: 0, prot: 130, fat: 0 };
+let metas = { kcal: 1800, carb: 200, prot: 130, fat: 60 };
 
 // 1. Carrega dados salvos ao iniciar a página
 document.addEventListener('DOMContentLoaded', () => {
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// 2. Event listener no botão de busca
+// 2. Listener do botão de busca
 if (searchBtn) {
   searchBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -150,11 +150,15 @@ function atualizarTela() {
   if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
 }
 
-// 7. Atualiza exibição de Metas se houver elementos na tela
+// 7. Atualiza exibição das Metas Diárias no Dashboard
 function atualizarMetasNaTela() {
-  const kcalGoalEl = document.getElementById('kcal-goal');
-  const protGoalEl = document.getElementById('prot-goal');
+  const targetKcal = document.getElementById('target-kcal-label');
+  const targetCarb = document.getElementById('target-carb-label');
+  const targetProt = document.getElementById('target-prot-label');
+  const targetFat = document.getElementById('target-fat-label');
   
-  if (kcalGoalEl) kcalGoalEl.textContent = `Daily target around ${metas.kcal} kcal`;
-  if (protGoalEl) protGoalEl.textContent = `Goal: ${metas.prot}g+ daily`;
+  if (targetKcal) targetKcal.textContent = `Meta: ${metas.kcal} kcal`;
+  if (targetCarb) targetCarb.textContent = `Meta: ${metas.carb}g`;
+  if (targetProt) targetProt.textContent = `Meta: ${metas.prot}g`;
+  if (targetFat) targetFat.textContent = `Meta: ${metas.fat}g`;
 }
