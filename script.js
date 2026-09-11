@@ -10,30 +10,39 @@ const carbVal = document.getElementById('carb-val');
 const protVal = document.getElementById('prot-val');
 const fatVal = document.getElementById('fat-val');
 
-// Chaves do LocalStorage
+// LocalStorage
 const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
 const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
 
 let refeicoes = [];
 let metas = { kcal: 1800, carb: 200, prot: 130, fat: 60 };
 
-// 1. Carrega dados salvos ao iniciar a página
+// Banco Local de Alimentos (Responde na hora e funciona offline)
+const BANCO_LOCAL = [
+  { palavras: ['ovo', 'ovos', 'ovo cozido'], nome: 'Ovo Cozido', kcal: 155, prot: 13, carb: 1.1, fat: 11 },
+  { palavras: ['frango', 'peito de frango', 'frango grelhado'], nome: 'Peito de Frango Grelhado', kcal: 165, prot: 31, carb: 0, fat: 3.6 },
+  { palavras: ['arroz', 'arroz branco'], nome: 'Arroz Branco Cozido', kcal: 130, prot: 2.7, carb: 28, fat: 0.3 },
+  { palavras: ['feijão', 'feijao', 'feijão preto'], nome: 'Feijão Preto Cozido', kcal: 77, prot: 4.5, carb: 14, fat: 0.5 },
+  { palavras: ['banana', 'banana nanica', 'banana prata'], nome: 'Banana', kcal: 89, prot: 1.1, carb: 23, fat: 0.3 },
+  { palavras: ['pão', 'pao', 'pão de fôrma', 'pao de forma'], nome: 'Pão de Fôrma', kcal: 265, prot: 9, carb: 49, fat: 3.2 },
+  { palavras: ['carne', 'patinho', 'carne moída'], nome: 'Patinho Grelhado/Moído', kcal: 219, prot: 35, carb: 0, fat: 7.3 },
+  { palavras: ['leite', 'leite integral'], nome: 'Leite Integral', kcal: 61, prot: 3.2, carb: 4.8, fat: 3.2 },
+  { palavras: ['aveia'], nome: 'Aveia em Flocos', kcal: 394, prot: 13.9, carb: 66.6, fat: 8.5 }
+];
+
+// 1. Carrega os dados do LocalStorage ao abrir
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem(STORAGE_KEY_ITEMS);
-  if (salvas) {
-    refeicoes = JSON.parse(salvas);
-  }
+  if (salvas) refeicoes = JSON.parse(salvas);
 
   const metasSalvas = localStorage.getItem(STORAGE_KEY_GOALS);
-  if (metasSalvas) {
-    metas = JSON.parse(metasSalvas);
-  }
+  if (metasSalvas) metas = JSON.parse(metasSalvas);
 
   atualizarMetasNaTela();
   atualizarTela();
 });
 
-// 2. Listener do botão de busca
+// 2. Evento do botão "Buscar e Adicionar"
 if (searchBtn) {
   searchBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -41,9 +50,9 @@ if (searchBtn) {
   });
 }
 
-// 3. Função principal para buscar alimento na API
+// 3. Função Híbrida de Busca
 async function buscarEAdicionar() {
-  const termo = foodInput.value.trim();
+  const termo = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
 
   if (!termo) {
@@ -51,27 +60,40 @@ async function buscarEAdicionar() {
     return;
   }
 
+  const fator = gramas / 100;
+
+  // Busca 1: Verifica no banco local
+  const itemLocal = BANCO_LOCAL.find(item => item.palavras.some(p => termo.includes(p)));
+
+  if (itemLocal) {
+    const novoAlimento = {
+      id: Date.now(),
+      nome: itemLocal.nome,
+      gramas: gramas,
+      kcal: Math.round(itemLocal.kcal * fator),
+      prot: parseFloat((itemLocal.prot * fator).toFixed(1)),
+      carb: parseFloat((itemLocal.carb * fator).toFixed(1)),
+      fat: parseFloat((itemLocal.fat * fator).toFixed(1))
+    };
+
+    refeicoes.push(novoAlimento);
+    salvarEAtualizar();
+    foodInput.value = '';
+    return;
+  }
+
+  // Busca 2: Se não achar localmente, tenta na API externa
   searchBtn.textContent = "Buscando...";
   searchBtn.disabled = true;
 
   try {
-    // API de busca global da Open Food Facts (v2)
-    const apiUrl = `https://world.openfoodfacts.org/api/v2/search?categories_tags_en=${encodeURIComponent(termo)}&fields=product_name,product_name_pt,nutriments&page_size=5`;
-    
-    let response = await fetch(apiUrl);
-    let data = await response.json();
-
-    // Busca secundária caso a busca por categoria não traga resultados
-    if (!data.products || data.products.length === 0) {
-      const fallbackUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`;
-      response = await fetch(fallbackUrl);
-      data = await response.json();
-    }
+    const apiUrl = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`;
+    const response = await fetch(apiUrl);
+    const data = await response.json();
 
     if (data.products && data.products.length > 0) {
       const produto = data.products[0];
       const nutriments = produto.nutriments || {};
-      const fator = gramas / 100;
 
       const kcal100 = nutriments['energy-kcal_100g'] || nutriments['energy-kcal'] || 0;
       const prot100 = nutriments.proteins_100g || nutriments.proteins || 0;
@@ -92,39 +114,56 @@ async function buscarEAdicionar() {
       salvarEAtualizar();
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Tente um termo mais simples.");
+      adicionarManual(termo, gramas);
     }
   } catch (erro) {
-    console.error("Erro na busca:", erro);
-    alert("Erro ao conectar à API. Verifique sua conexão e tente novamente.");
+    console.error("Erro de conexão na busca:", erro);
+    adicionarManual(termo, gramas);
   } finally {
     searchBtn.textContent = "Buscar e Adicionar";
     searchBtn.disabled = false;
   }
 }
 
-// 4. Remove um alimento da lista
+// Entra em modo manual caso o alimento não exista nem na API
+function adicionarManual(termo, gramas) {
+  const confirmar = confirm(`Alimento "${termo}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
+  if (!confirmar) return;
+
+  const kcal = parseFloat(prompt(`Calorias para ${gramas}g:`, "100")) || 0;
+  const prot = parseFloat(prompt(`Proteínas (g) para ${gramas}g:`, "10")) || 0;
+  const carb = parseFloat(prompt(`Carboidratos (g) para ${gramas}g:`, "0")) || 0;
+  const fat = parseFloat(prompt(`Gorduras (g) para ${gramas}g:`, "0")) || 0;
+
+  const novoAlimento = {
+    id: Date.now(),
+    nome: termo.charAt(0).toUpperCase() + termo.slice(1),
+    gramas: gramas,
+    kcal: Math.round(kcal),
+    prot: parseFloat(prot.toFixed(1)),
+    carb: parseFloat(carb.toFixed(1)),
+    fat: parseFloat(fat.toFixed(1))
+  };
+
+  refeicoes.push(novoAlimento);
+  salvarEAtualizar();
+  foodInput.value = '';
+}
+
 function removerAlimento(id) {
   refeicoes = refeicoes.filter(item => item.id !== id);
   salvarEAtualizar();
 }
 
-// 5. Salva no LocalStorage e atualiza a interface
 function salvarEAtualizar() {
   localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
 }
 
-// 6. Atualiza a tabela de refeições e o Dashboard
 function atualizarTela() {
-  if (mealsTableBody) {
-    mealsTableBody.innerHTML = '';
-  }
+  if (mealsTableBody) mealsTableBody.innerHTML = '';
 
-  let totalKcal = 0;
-  let totalCarb = 0;
-  let totalProt = 0;
-  let totalFat = 0;
+  let totalKcal = 0, totalCarb = 0, totalProt = 0, totalFat = 0;
 
   refeicoes.forEach(item => {
     totalKcal += item.kcal;
@@ -139,9 +178,7 @@ function atualizarTela() {
         <td>${item.gramas}g</td>
         <td>${item.prot}g</td>
         <td>${item.kcal} kcal</td>
-        <td>
-          <button class="btn-del" onclick="removerAlimento(${item.id})">✕</button>
-        </td>
+        <td><button class="btn-del" onclick="removerAlimento(${item.id})">✕</button></td>
       `;
       mealsTableBody.appendChild(tr);
     }
@@ -153,7 +190,6 @@ function atualizarTela() {
   if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
 }
 
-// 7. Atualiza exibição das Metas Diárias
 function atualizarMetasNaTela() {
   const targetKcal = document.getElementById('target-kcal-label');
   const targetCarb = document.getElementById('target-carb-label');
