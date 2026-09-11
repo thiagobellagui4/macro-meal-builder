@@ -10,21 +10,38 @@ const carbVal = document.getElementById('carb-val');
 const protVal = document.getElementById('prot-val');
 const fatVal = document.getElementById('fat-val');
 
-// Chave do LocalStorage
-const STORAGE_KEY = 'macro_meal_builder_items';
+// Chaves do LocalStorage
+const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
+const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
 
 let refeicoes = [];
+let metas = { kcal: 1800, carb: 0, prot: 130, fat: 0 };
 
-// Carrega os alimentos do dia salvos
+// 1. Carrega dados salvos ao iniciar a página
 document.addEventListener('DOMContentLoaded', () => {
-  const salvas = localStorage.getItem(STORAGE_KEY);
+  const salvas = localStorage.getItem(STORAGE_KEY_ITEMS);
   if (salvas) {
     refeicoes = JSON.parse(salvas);
-    atualizarTela();
   }
+
+  const metasSalvas = localStorage.getItem(STORAGE_KEY_GOALS);
+  if (metasSalvas) {
+    metas = JSON.parse(metasSalvas);
+  }
+
+  atualizarMetasNaTela();
+  atualizarTela();
 });
 
-// Busca na API do Open Food Facts com endpoint otimizado
+// 2. Event listener no botão de busca
+if (searchBtn) {
+  searchBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    buscarEAdicionar();
+  });
+}
+
+// 3. Função principal para buscar alimento na API do Open Food Facts
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -38,9 +55,7 @@ async function buscarEAdicionar() {
   searchBtn.disabled = true;
 
   try {
-    // URL otimizada de busca do Open Food Facts
     const apiUrl = `https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`;
-    
     const response = await fetch(apiUrl);
     
     if (!response.ok) {
@@ -50,13 +65,11 @@ async function buscarEAdicionar() {
     const data = await response.json();
 
     if (data.products && data.products.length > 0) {
-      // Procura o primeiro produto que tenha dados nutricionais válidos
       const produto = data.products.find(p => p.nutriments && (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments.proteins_100g !== undefined)) || data.products[0];
       
       const nutriments = produto.nutriments || {};
       const fator = gramas / 100;
 
-      // Extrai os valores ou assume 0 se não encontrar
       const kcal100 = nutriments['energy-kcal_100g'] || nutriments['energy-kcal'] || 0;
       const prot100 = nutriments.proteins_100g || nutriments.proteins || 0;
       const carb100 = nutriments.carbohydrates_100g || nutriments.carbohydrates || 0;
@@ -76,7 +89,7 @@ async function buscarEAdicionar() {
       salvarEAtualizar();
       foodInput.value = '';
     } else {
-      alert("Nenhum alimento encontrado com esse nome. Tente um termo mais simples (ex: Banana, Frango).");
+      alert("Nenhum alimento encontrado. Tente um termo mais simples (ex: Banana, Frango).");
     }
   } catch (erro) {
     console.error("Erro na busca:", erro);
@@ -87,18 +100,23 @@ async function buscarEAdicionar() {
   }
 }
 
+// 4. Remove um alimento da lista
 function removerAlimento(id) {
   refeicoes = refeicoes.filter(item => item.id !== id);
   salvarEAtualizar();
 }
 
+// 5. Salva no LocalStorage e atualiza a interface
 function salvarEAtualizar() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(refeicoes));
+  localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
 }
 
+// 6. Atualiza a tabela de refeições e o Dashboard de Totais
 function atualizarTela() {
-  mealsTableBody.innerHTML = '';
+  if (mealsTableBody) {
+    mealsTableBody.innerHTML = '';
+  }
 
   let totalKcal = 0;
   let totalCarb = 0;
@@ -111,21 +129,32 @@ function atualizarTela() {
     totalProt += item.prot;
     totalFat += item.fat;
 
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td><strong>${item.nome}</strong></td>
-      <td>${item.gramas}g</td>
-      <td>${item.prot}g</td>
-      <td>${item.kcal} kcal</td>
-      <td>
-        <button class="btn-del" onclick="removerAlimento(${item.id})">✕</button>
-      </td>
-    `;
-    mealsTableBody.appendChild(tr);
+    if (mealsTableBody) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${item.nome}</strong></td>
+        <td>${item.gramas}g</td>
+        <td>${item.prot}g</td>
+        <td>${item.kcal} kcal</td>
+        <td>
+          <button class="btn-del" onclick="removerAlimento(${item.id})">✕</button>
+        </td>
+      `;
+      mealsTableBody.appendChild(tr);
+    }
   });
 
-  kcalVal.textContent = `${totalKcal} kcal`;
-  carbVal.textContent = `${totalCarb.toFixed(1)} g`;
-  protVal.textContent = `${totalProt.toFixed(1)} g`;
-  fatVal.textContent = `${totalFat.toFixed(1)} g`;
+  if (kcalVal) kcalVal.textContent = `${totalKcal} kcal`;
+  if (carbVal) carbVal.textContent = `${totalCarb.toFixed(1)} g`;
+  if (protVal) protVal.textContent = `${totalProt.toFixed(1)} g`;
+  if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
+}
+
+// 7. Atualiza exibição de Metas se houver elementos na tela
+function atualizarMetasNaTela() {
+  const kcalGoalEl = document.getElementById('kcal-goal');
+  const protGoalEl = document.getElementById('prot-goal');
+  
+  if (kcalGoalEl) kcalGoalEl.textContent = `Daily target around ${metas.kcal} kcal`;
+  if (protGoalEl) protGoalEl.textContent = `Goal: ${metas.prot}g+ daily`;
 }
