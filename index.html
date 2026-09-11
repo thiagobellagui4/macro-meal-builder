@@ -329,6 +329,11 @@
     populateDropdown();
     loadGoalsUI();
     render();
+
+    // Registro do Service Worker para suporte Offline
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js');
+    }
   </script>
 </body>
 </html>
