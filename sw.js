@@ -1,19 +1,44 @@
-const CACHE_NAME = 'macro-meal-v1';
-const ASSETS = [
-  './',
-  './index.html'
-];
+const CACHE_NAME = 'macro-meal-v2';
 
-// Instala o Service Worker e salva os arquivos no cache do celular
+// 1. Instalação do Service Worker
 self.addEventListener('install', (e) => {
+  self.skipWaiting();
+});
+
+// 2. Ativação: Limpa os caches antigos
+self.addEventListener('activate', (e) => {
   e.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
+    caches.keys().then((keys) => {
+      return Promise.all(
+        keys.map((key) => {
+          if (key !== CACHE_NAME) {
+            return caches.delete(key);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
   );
 });
 
-// Intercepta as requisições para carregar o app do cache se estiver sem internet
+// 3. Busca primeiro na rede (internet); se falhar/offline, busca no cache
 self.addEventListener('fetch', (e) => {
+  // Ignora requisições de APIs externas (como a do Open Food Facts) para não travar a busca
+  if (!e.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
   e.respondWith(
-    caches.match(e.request).then((response) => response || fetch(e.request))
+    fetch(e.request)
+      .then((networkResponse) => {
+        // Se conseguir buscar da internet, atualiza a cópia no cache
+        return caches.open(CACHE_NAME).then((cache) => {
+          cache.put(e.request, networkResponse.clone());
+          return networkResponse;
+        });
+      })
+      .catch(() => {
+        // Se estiver offline, entrega o que está salvo no cache
+        return caches.match(e.request);
+      })
   );
 });
