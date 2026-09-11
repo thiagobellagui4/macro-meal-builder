@@ -80,24 +80,26 @@
     <div class="card full-width">
       <div class="sub">Energy total</div>
       <div class="val" id="kcal-val">0 kcal</div>
-      <div class="sub">Daily target around 1,800 kcal</div>
+      <div class="sub" id="target-kcal-label">Daily target around 1,800 kcal</div>
     </div>
     <div class="card">
       <div class="sub">Carbohydrates</div>
       <div class="val" id="carb-val">0 g</div>
+      <div class="sub" id="target-carb-label">Goal: --</div>
     </div>
     <div class="card">
       <div class="sub">Protein</div>
       <div class="val" id="prot-val">0 g</div>
-      <div class="sub">Goal: 130g+ daily</div>
+      <div class="sub" id="target-prot-label">Goal: 130g+ daily</div>
     </div>
     <div class="card full-width">
       <div class="sub">Total fat</div>
       <div class="val" id="fat-val">0 g</div>
+      <div class="sub" id="target-fat-label">Goal: --</div>
     </div>
   </div>
 
-  <!-- Formulário de Adição ao Prato -->
+  <!-- Adicionar ao Prato -->
   <div class="card">
     <h3>Adicionar ao Prato</h3>
     <label>Selecione o alimento</label>
@@ -127,7 +129,31 @@
     <button onclick="clearPlate()" style="background-color: #444; margin-top: 15px;">Limpar Prato</button>
   </div>
 
-  <!-- Cadastrar Novo Alimento na Base -->
+  <!-- Ajustar Metas Diárias -->
+  <div class="card">
+    <h3>Editar Minhas Metas</h3>
+    <div class="grid-inputs">
+      <div>
+        <label>Meta Calorias (kcal)</label>
+        <input type="number" id="goal-kcal" placeholder="1800">
+      </div>
+      <div>
+        <label>Meta Proteínas (g)</label>
+        <input type="number" id="goal-prot" placeholder="130">
+      </div>
+      <div>
+        <label>Meta Carboidratos (g)</label>
+        <input type="number" id="goal-carb" placeholder="200">
+      </div>
+      <div>
+        <label>Meta Gorduras (g)</label>
+        <input type="number" id="goal-fat" placeholder="50">
+      </div>
+    </div>
+    <button onclick="saveGoals()" style="background-color: #f57c00;">Salvar Novas Metas</button>
+  </div>
+
+  <!-- Cadastrar Novo Alimento -->
   <div class="card">
     <h3>Cadastrar Novo Alimento</h3>
     <label>Nome do Alimento</label>
@@ -156,7 +182,6 @@
   </div>
 
   <script>
-    // Base Padrão de Alimentos
     const defaultFoods = [
       { id: 1, name: "Filé de frango", kcal: 166.6, carb: 0, prot: 30.6, fat: 3.6 },
       { id: 2, name: "Carne moída", kcal: 213.3, carb: 0, prot: 26, fat: 11.3 },
@@ -167,9 +192,11 @@
       { id: 7, name: "Queijo muçarela", kcal: 262.5, carb: 2.5, prot: 22.5, fat: 25 }
     ];
 
-    // Carrega alimentos cadastrados ou usa os padrão
+    const defaultGoals = { kcal: 1800, prot: 130, carb: 200, fat: 50 };
+
     let customFoods = JSON.parse(localStorage.getItem('macro_custom_foods')) || defaultFoods;
     let activePlate = JSON.parse(localStorage.getItem('macro_plate')) || [];
+    let userGoals = JSON.parse(localStorage.getItem('macro_user_goals')) || defaultGoals;
 
     function populateDropdown() {
       const selectEl = document.getElementById('food-select');
@@ -180,6 +207,31 @@
         opt.textContent = item.name;
         selectEl.appendChild(opt);
       });
+    }
+
+    function loadGoalsUI() {
+      document.getElementById('goal-kcal').value = userGoals.kcal || '';
+      document.getElementById('goal-prot').value = userGoals.prot || '';
+      document.getElementById('goal-carb').value = userGoals.carb || '';
+      document.getElementById('goal-fat').value = userGoals.fat || '';
+
+      document.getElementById('target-kcal-label').textContent = `Daily target around ${userGoals.kcal || 0} kcal`;
+      document.getElementById('target-prot-label').textContent = `Goal: ${userGoals.prot || 0}g+ daily`;
+      document.getElementById('target-carb-label').textContent = `Goal: ${userGoals.carb || 0}g daily`;
+      document.getElementById('target-fat-label').textContent = `Goal: ${userGoals.fat || 0}g daily`;
+    }
+
+    function saveGoals() {
+      userGoals = {
+        kcal: parseFloat(document.getElementById('goal-kcal').value) || 0,
+        prot: parseFloat(document.getElementById('goal-prot').value) || 0,
+        carb: parseFloat(document.getElementById('goal-carb').value) || 0,
+        fat: parseFloat(document.getElementById('goal-fat').value) || 0
+      };
+
+      localStorage.setItem('macro_user_goals', JSON.stringify(userGoals));
+      loadGoalsUI();
+      alert('Metas atualizadas com sucesso!');
     }
 
     function addNewFood() {
@@ -197,8 +249,7 @@
       const newObj = { id: Date.now(), name, kcal, carb, prot, fat };
       customFoods.push(newObj);
       localStorage.setItem('macro_custom_foods', JSON.stringify(customFoods));
-      
-      // Limpa campos
+
       document.getElementById('new-name').value = '';
       document.getElementById('new-kcal').value = '';
       document.getElementById('new-prot').value = '';
@@ -276,6 +327,7 @@
     }
 
     populateDropdown();
+    loadGoalsUI();
     render();
   </script>
 </body>
