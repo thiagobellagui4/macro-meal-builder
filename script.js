@@ -12,11 +12,16 @@ const goalProtInput = document.getElementById('goal-prot');
 const goalFatInput = document.getElementById('goal-fat');
 const saveGoalsBtn = document.getElementById('save-goals-btn');
 
-// Dashboard Totais
+// Dashboard Totais + Barras de Progresso
 const kcalVal = document.getElementById('kcal-val');
 const carbVal = document.getElementById('carb-val');
 const protVal = document.getElementById('prot-val');
 const fatVal = document.getElementById('fat-val');
+
+const kcalBar = document.getElementById('kcal-bar');
+const carbBar = document.getElementById('carb-bar');
+const protBar = document.getElementById('prot-bar');
+const fatBar = document.getElementById('fat-bar');
 
 // Chaves do LocalStorage
 const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
@@ -59,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
   if (customizados) alimentosCustomizados = JSON.parse(customizados);
 
   preencherCamposMetas();
-  atualizarMetasNaTela();
   atualizarTela();
 });
 
@@ -87,7 +91,7 @@ if (saveGoalsBtn) {
   });
 }
 
-// 3. Salvar Novas Metas (Corrigido)
+// 3. Salvar Novas Metas
 function salvarMetas() {
   const novasKcal = parseFloat(goalKcalInput.value) || metas.kcal;
   const novosCarbs = parseFloat(goalCarbInput.value) || metas.carb;
@@ -102,7 +106,7 @@ function salvarMetas() {
   };
 
   localStorage.setItem(STORAGE_KEY_GOALS, JSON.stringify(metas));
-  atualizarMetasNaTela();
+  atualizarTela();
   alert("Metas diárias atualizadas com sucesso!");
 }
 
@@ -113,7 +117,7 @@ function preencherCamposMetas() {
   if (goalFatInput) goalFatInput.value = metas.fat;
 }
 
-// 4. Busca Híbrida Inteligente
+// 4. Busca Híbrida
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -125,7 +129,6 @@ async function buscarEAdicionar() {
 
   const fator = gramas / 100;
 
-  // Busca 0: Alimentos Manuais Gravados
   const customEncontrado = alimentosCustomizados.find(item => 
     item.palavras.some(p => termo.includes(p) || p.includes(termo))
   );
@@ -136,7 +139,6 @@ async function buscarEAdicionar() {
     return;
   }
 
-  // Busca 1: Banco Local
   const itemLocal = BANCO_LOCAL.find(item => 
     item.palavras.some(p => termo.includes(p) || p.includes(termo))
   );
@@ -147,7 +149,6 @@ async function buscarEAdicionar() {
     return;
   }
 
-  // Busca 2: API Externa
   searchBtn.textContent = "Buscando...";
   searchBtn.disabled = true;
 
@@ -186,7 +187,7 @@ async function buscarEAdicionar() {
   }
 }
 
-// 5. Entrada Manual + Gravação Automática
+// 5. Entrada Manual
 function adicionarManual(termo, gramas, diretoPeloBotao = false) {
   let nomeAlimento = termo;
 
@@ -229,7 +230,6 @@ function adicionarManual(termo, gramas, diretoPeloBotao = false) {
   foodInput.value = '';
 }
 
-// Auxiliar para montar o objeto de refeição
 function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
   const novoAlimento = {
     id: Date.now(),
@@ -245,19 +245,17 @@ function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
   salvarEAtualizar();
 }
 
-// 6. Remove alimento
 function removerAlimento(id) {
   refeicoes = refeicoes.filter(item => item.id !== id);
   salvarEAtualizar();
 }
 
-// 7. Salva no LocalStorage
 function salvarEAtualizar() {
   localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
 }
 
-// 8. Atualiza Dashboard e Tabela
+// 6. Atualiza Tela com Cálculo Dinâmico de Progresso (%)
 function atualizarTela() {
   if (mealsTableBody) mealsTableBody.innerHTML = '';
 
@@ -282,21 +280,15 @@ function atualizarTela() {
     }
   });
 
-  if (kcalVal) kcalVal.textContent = `${totalKcal} kcal`;
-  if (carbVal) carbVal.textContent = `${totalCarb.toFixed(1)} g`;
-  if (protVal) protVal.textContent = `${totalProt.toFixed(1)} g`;
-  if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
-}
+  // Atualiza Valores Textuais
+  if (kcalVal) kcalVal.textContent = `${totalKcal} / ${metas.kcal} kcal`;
+  if (carbVal) carbVal.textContent = `${totalCarb.toFixed(1)} / ${metas.carb}g`;
+  if (protVal) protVal.textContent = `${totalProt.toFixed(1)} / ${metas.prot}g`;
+  if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} / ${metas.fat}g`;
 
-// 9. Atualiza Metas na Tela
-function atualizarMetasNaTela() {
-  const targetKcal = document.getElementById('target-kcal-label');
-  const targetCarb = document.getElementById('target-carb-label');
-  const targetProt = document.getElementById('target-prot-label');
-  const targetFat = document.getElementById('target-fat-label');
-  
-  if (targetKcal) targetKcal.textContent = `Meta: ${metas.kcal} kcal`;
-  if (targetCarb) targetCarb.textContent = `Meta: ${metas.carb}g`;
-  if (targetProt) targetProt.textContent = `Meta: ${metas.prot}g`;
-  if (targetFat) targetFat.textContent = `Meta: ${metas.fat}g`;
+  // Atualiza Largura das Barras de Progresso (limitado a 100%)
+  if (kcalBar) kcalBar.style.width = `${Math.min(100, (totalKcal / metas.kcal) * 100)}%`;
+  if (carbBar) carbBar.style.width = `${Math.min(100, (totalCarb / metas.carb) * 100)}%`;
+  if (protBar) protBar.style.width = `${Math.min(100, (totalProt / metas.prot) * 100)}%`;
+  if (fatBar) fatBar.style.width = `${Math.min(100, (totalFat / metas.fat) * 100)}%`;
 }
