@@ -2,6 +2,7 @@
 const foodInput = document.getElementById('food-input');
 const portionInput = document.getElementById('portion-input');
 const searchBtn = document.getElementById('search-btn');
+const manualBtn = document.getElementById('manual-btn');
 const mealsTableBody = document.getElementById('meals-table-body');
 
 // Dashboard Totais
@@ -10,14 +11,16 @@ const carbVal = document.getElementById('carb-val');
 const protVal = document.getElementById('prot-val');
 const fatVal = document.getElementById('fat-val');
 
-// LocalStorage
+// Chaves do LocalStorage
 const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
 const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
+const STORAGE_KEY_CUSTOM = 'macro_meal_builder_custom_foods';
 
 let refeicoes = [];
+let alimentosCustomizados = [];
 let metas = { kcal: 1800, carb: 200, prot: 130, fat: 60 };
 
-// Base de Dados Local Ampliada (Funciona offline e dá resposta instantânea)
+// Base de Dados Local Padrão
 const BANCO_LOCAL = [
   { palavras: ['ovo', 'ovos', 'ovo cozido'], nome: 'Ovo Cozido', kcal: 155, prot: 13, carb: 1.1, fat: 11 },
   { palavras: ['frango', 'peito de frango', 'frango grelhado'], nome: 'Peito de Frango Grelhado', kcal: 165, prot: 31, carb: 0, fat: 3.6 },
@@ -37,7 +40,7 @@ const BANCO_LOCAL = [
   { palavras: ['queijo', 'queijo mussarela', 'mussarela'], nome: 'Queijo Mussarela', kcal: 280, prot: 18, carb: 3.1, fat: 22 }
 ];
 
-// 1. Carrega dados salvos ao iniciar a página
+// 1. Carrega dados salvos
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem(STORAGE_KEY_ITEMS);
   if (salvas) refeicoes = JSON.parse(salvas);
@@ -45,15 +48,27 @@ document.addEventListener('DOMContentLoaded', () => {
   const metasSalvas = localStorage.getItem(STORAGE_KEY_GOALS);
   if (metasSalvas) metas = JSON.parse(metasSalvas);
 
+  const customizados = localStorage.getItem(STORAGE_KEY_CUSTOM);
+  if (customizados) alimentosCustomizados = JSON.parse(customizados);
+
   atualizarMetasNaTela();
   atualizarTela();
 });
 
-// 2. Listener do botão de busca
+// 2. Listeners
 if (searchBtn) {
   searchBtn.addEventListener('click', (e) => {
     e.preventDefault();
     buscarEAdicionar();
+  });
+}
+
+if (manualBtn) {
+  manualBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const termo = foodInput.value.trim() || "Alimento Personalizado";
+    const gramas = parseFloat(portionInput.value) || 100;
+    adicionarManual(termo, gramas, true);
   });
 }
 
@@ -69,29 +84,29 @@ async function buscarEAdicionar() {
 
   const fator = gramas / 100;
 
-  // Busca 1: Banco Local (procura por palavras que contenham ou estejam contidas no termo)
+  // Busca 0: Alimentos Manuais Gravados do Usuário
+  const customEncontrado = alimentosCustomizados.find(item => 
+    item.palavras.some(p => termo.includes(p) || p.includes(termo))
+  );
+
+  if (customEncontrado) {
+    adicionarPratoAoMenu(customEncontrado.nome, gramas, customEncontrado.kcal100 * fator, customEncontrado.prot100 * fator, customEncontrado.carb100 * fator, customEncontrado.fat100 * fator);
+    foodInput.value = '';
+    return;
+  }
+
+  // Busca 1: Banco Local Padrão
   const itemLocal = BANCO_LOCAL.find(item => 
     item.palavras.some(p => termo.includes(p) || p.includes(termo))
   );
 
   if (itemLocal) {
-    const novoAlimento = {
-      id: Date.now(),
-      nome: itemLocal.nome,
-      gramas: gramas,
-      kcal: Math.round(itemLocal.kcal * fator),
-      prot: parseFloat((itemLocal.prot * fator).toFixed(1)),
-      carb: parseFloat((itemLocal.carb * fator).toFixed(1)),
-      fat: parseFloat((itemLocal.fat * fator).toFixed(1))
-    };
-
-    refeicoes.push(novoAlimento);
-    salvarEAtualizar();
+    adicionarPratoAoMenu(itemLocal.nome, gramas, itemLocal.kcal * fator, itemLocal.prot * fator, itemLocal.carb * fator, itemLocal.fat * fator);
     foodInput.value = '';
     return;
   }
 
-  // Busca 2: API Externa da Open Food Facts
+  // Busca 2: API Externa
   searchBtn.textContent = "Buscando...";
   searchBtn.disabled = true;
 
@@ -109,18 +124,14 @@ async function buscarEAdicionar() {
       const carb100 = nutriments.carbohydrates_100g || nutriments.carbohydrates || 0;
       const fat100 = nutriments.fat_100g || nutriments.fat || 0;
 
-      const novoAlimento = {
-        id: Date.now(),
-        nome: produto.product_name_pt || produto.product_name || termo,
-        gramas: gramas,
-        kcal: Math.round(kcal100 * fator),
-        prot: parseFloat((prot100 * fator).toFixed(1)),
-        carb: parseFloat((carb100 * fator).toFixed(1)),
-        fat: parseFloat((fat100 * fator).toFixed(1))
-      };
-
-      refeicoes.push(novoAlimento);
-      salvarEAtualizar();
+      adicionarPratoAoMenu(
+        produto.product_name_pt || produto.product_name || termo,
+        gramas,
+        kcal100 * fator,
+        prot100 * fator,
+        carb100 * fator,
+        fat100 * fator
+      );
       foodInput.value = '';
     } else {
       adicionarManual(termo, gramas);
@@ -134,19 +145,51 @@ async function buscarEAdicionar() {
   }
 }
 
-// 4. Entrada Manual de Emergência
-function adicionarManual(termo, gramas) {
-  const confirmar = confirm(`Alimento "${termo}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
-  if (!confirmar) return;
+// 4. Entrada Manual + Gravação Automática
+function adicionarManual(termo, gramas, diretoPeloBotao = false) {
+  if (!diretoPeloBotao) {
+    const confirmar = confirm(`Alimento "${termo}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
+    if (!confirmar) return;
+  }
 
-  const kcal = parseFloat(prompt(`Calorias para ${gramas}g:`, "100")) || 0;
-  const prot = parseFloat(prompt(`Proteínas (g) para ${gramas}g:`, "10")) || 0;
-  const carb = parseFloat(prompt(`Carboidratos (g) para ${gramas}g:`, "0")) || 0;
-  const fat = parseFloat(prompt(`Gorduras (g) para ${gramas}g:`, "0")) || 0;
+  const kcal = parseFloat(prompt(`Calorias totais para ${gramas}g de ${termo}:`, "100")) || 0;
+  const prot = parseFloat(prompt(`Proteínas (g) totais:`, "10")) || 0;
+  const carb = parseFloat(prompt(`Carboidratos (g) totais:`, "0")) || 0;
+  const fat = parseFloat(prompt(`Gorduras (g) totais:`, "0")) || 0;
 
+  // Converte os valores informados para a proporção padrão de 100g
+  const fator100 = 100 / gramas;
+  const nomeFormatado = termo.charAt(0).toUpperCase() + termo.slice(1);
+  const termoChave = termo.toLowerCase().trim();
+
+  // Salva no banco de dados customizado permanente
+  const jaExisteIdx = alimentosCustomizados.findIndex(a => a.nome.toLowerCase() === termoChave);
+  const itemCustom = {
+    palavras: [termoChave],
+    nome: nomeFormatado,
+    kcal100: kcal * fator100,
+    prot100: prot * fator100,
+    carb100: carb * fator100,
+    fat100: fat * fator100
+  };
+
+  if (jaExisteIdx >= 0) {
+    alimentosCustomizados[jaExisteIdx] = itemCustom;
+  } else {
+    alimentosCustomizados.push(itemCustom);
+  }
+  localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(alimentosCustomizados));
+
+  // Adiciona à lista do dia
+  adicionarPratoAoMenu(nomeFormatado, gramas, kcal, prot, carb, fat);
+  foodInput.value = '';
+}
+
+// Auxiliar para montar o objeto de refeição
+function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
   const novoAlimento = {
     id: Date.now(),
-    nome: termo.charAt(0).toUpperCase() + termo.slice(1),
+    nome: nome,
     gramas: gramas,
     kcal: Math.round(kcal),
     prot: parseFloat(prot.toFixed(1)),
@@ -156,7 +199,6 @@ function adicionarManual(termo, gramas) {
 
   refeicoes.push(novoAlimento);
   salvarEAtualizar();
-  foodInput.value = '';
 }
 
 // 5. Remove alimento
@@ -165,7 +207,7 @@ function removerAlimento(id) {
   salvarEAtualizar();
 }
 
-// 6. Salva no LocalStorage e atualiza a tela
+// 6. Salva no LocalStorage
 function salvarEAtualizar() {
   localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
