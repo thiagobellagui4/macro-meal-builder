@@ -3,17 +3,16 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NutriMeta</title>
+  <title>Meal Builder</title>
   <style>
     :root {
-      --bg: #0f172a;
+      --bg: #0b1120;
       --card-bg: #1e293b;
-      --input-bg: #334155;
-      --accent-green: #10b981;
+      --input-bg: #273548;
       --accent-blue: #3b82f6;
-      --accent-orange: #f59e0b;
+      --accent-green: #10b981;
       --accent-pink: #ec4899;
-      --secondary: #475569;
+      --accent-orange: #f59e0b;
       --text: #f8fafc;
       --subtext: #94a3b8;
       --border: #334155;
@@ -24,75 +23,144 @@
       color: var(--text);
       margin: 0 auto;
       max-width: 480px;
-      padding: 16px;
+      padding: 12px;
+    }
+    .banner {
+      width: 100%;
+      height: 110px;
+      border-radius: 12px;
+      object-fit: cover;
+      margin-bottom: 8px;
+    }
+    h1.title {
+      text-align: center;
+      color: #38bdf8;
+      font-size: 1.8rem;
+      margin: 10px 0 16px 0;
+      font-weight: 800;
+      letter-spacing: 0.5px;
     }
     .card {
       background-color: var(--card-bg);
       border-radius: 16px;
       padding: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 14px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);
     }
     .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-    .val-row { display: flex; justify-content: space-between; margin: 6px 0 10px; }
-    .val { font-size: 1.25rem; font-weight: 800; }
-    .sub { font-size: 0.8rem; color: var(--subtext); }
-    .progress-bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 999px; overflow: hidden; }
+    .label-top { font-size: 0.75rem; color: var(--subtext); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 6px; }
+    .val-row { display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px; }
+    .val-main { font-size: 1.4rem; font-weight: 800; }
+    .val-meta { font-size: 0.85rem; color: #ef4444; font-weight: 700; }
+    .progress-bar-bg { width: 100%; height: 6px; background-color: var(--border); border-radius: 999px; overflow: hidden; margin-top: 10px; }
     .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; }
     .fill-kcal { background-color: var(--accent-orange); }
-    .fill-prot { background-color: var(--accent-green); }
     .fill-carb { background-color: var(--accent-blue); }
+    .fill-prot { background-color: var(--accent-green); }
     .fill-fat { background-color: var(--accent-pink); }
+    
     input, button {
       width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem;
     }
-    input { background: var(--input-bg); color: var(--text); }
+    input { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
     button { background: var(--accent-green); color: #fff; font-weight: bold; cursor: pointer; }
-    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
+    
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
     th, td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
-    .btn-del { background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 0.8rem; padding: 4px; width: auto; margin: 0; }
+    .btn-del { background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 0.9rem; padding: 4px; width: auto; margin: 0; }
   </style>
 </head>
 <body>
-  <h1>NutriMeta</h1>
+
+  <!-- Banner Superior de Comida -->
+  <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80" alt="Meal Builder Banner" class="banner">
   
-  <!-- Painel de Calorias -->
+  <h1 class="title">Meal Builder</h1>
+
+  <!-- Energia Total -->
   <div class="card">
-    <span>Energia Total</span>
+    <span class="label-top">Energia Total</span>
     <div class="val-row">
-      <span class="val"><span id="kcal-val">0</span> / <span id="kcal-meta">2000</span> kcal</span>
+      <span class="val-main" style="color: var(--accent-orange);"><span id="kcal-val">0.0</span> / <span id="disp-meta-kcal">1800</span> kcal</span>
+      <span class="val-meta">Meta: <span id="txt-meta-kcal">1800</span> kcal</span>
     </div>
     <div class="progress-bar-bg"><div class="progress-bar-fill fill-kcal" id="kcal-bar"></div></div>
   </div>
 
-  <!-- Painel de Macronutrientes -->
+  <!-- Carboidratos e Proteínas -->
   <div class="grid-2">
     <div class="card" style="margin-bottom:0;">
-      <span class="sub">Proteínas</span>
-      <div class="val-row"><span class="val" style="font-size:1.05rem;"><span id="prot-val">0</span>g</span></div>
-      <div class="progress-bar-bg"><div class="progress-bar-fill fill-prot" id="prot-bar"></div></div>
-    </div>
-    <div class="card" style="margin-bottom:0;">
-      <span class="sub">Carboidratos</span>
-      <div class="val-row"><span class="val" style="font-size:1.05rem;"><span id="carb-val">0</span>g</span></div>
+      <span class="label-top">Carboidratos</span>
+      <div class="val-row">
+        <span class="val-main" style="color: var(--accent-blue);"><span id="carb-val">0.0</span> / <span id="disp-meta-carb">12</span>g</span>
+      </div>
+      <span class="val-meta" style="display:block; text-align:right; margin-top:2px;">Meta: <span id="txt-meta-carb">12</span>g</span>
       <div class="progress-bar-bg"><div class="progress-bar-fill fill-carb" id="carb-bar"></div></div>
+    </div>
+    
+    <div class="card" style="margin-bottom:0;">
+      <span class="label-top">Proteínas</span>
+      <div class="val-row">
+        <span class="val-main" style="color: var(--accent-green);"><span id="prot-val">0.0</span> / <span id="disp-meta-prot">85</span>g</span>
+      </div>
+      <span class="val-meta" style="display:block; text-align:right; margin-top:2px;">Meta: <span id="txt-meta-prot">85</span>g</span>
+      <div class="progress-bar-bg"><div class="progress-bar-fill fill-prot" id="prot-bar"></div></div>
     </div>
   </div>
 
-  <div class="card" style="margin-top: 16px;">
-    <h3>+ Adicionar Alimento</h3>
-    <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango, Aveia)...">
+  <!-- Gorduras Totais -->
+  <div class="card" style="margin-top: 14px;">
+    <span class="label-top">Gorduras Totais</span>
+    <div class="val-row">
+      <span class="val-main" style="color: var(--accent-pink);"><span id="fat-val">0.0</span> / <span id="disp-meta-fat">60</span>g</span>
+      <span class="val-meta">Meta: <span id="txt-meta-fat">60</span>g</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill fill-fat" id="fat-bar"></div></div>
+  </div>
+
+  <!-- Adicionar Alimento -->
+  <div class="card">
+    <h3 style="margin-top:0; font-size:1rem; color:var(--subtext);">+ Adicionar Alimento</h3>
+    <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango)...">
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
   </div>
 
+  <!-- Refeições Registradas -->
   <div class="card">
-    <h3>Refeições Registradas</h3>
+    <h3 style="margin-top:0; font-size:1rem; color:var(--subtext);">Refeições Registradas</h3>
     <table>
       <thead>
         <tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Kcal</th><th></th></tr>
       </thead>
       <tbody id="meals-table-body"></tbody>
     </table>
+  </div>
+
+  <!-- Definir Metas Diárias -->
+  <div class="card">
+    <h3 style="margin-top:0; font-size:1rem; color:var(--subtext);">Definir Metas Diárias</h3>
+    <div class="grid-2">
+      <div>
+        <span class="label-top">Calorias (kcal)</span>
+        <input type="number" id="input-meta-kcal" value="1800">
+      </div>
+      <div>
+        <span class="label-top">Carboidratos (g)</span>
+        <input type="number" id="input-meta-carb" value="12">
+      </div>
+    </div>
+    <div class="grid-2" style="margin-top: 8px;">
+      <div>
+        <span class="label-top">Proteínas (g)</span>
+        <input type="number" id="input-meta-prot" value="85">
+      </div>
+      <div>
+        <span class="label-top">Gorduras (g)</span>
+        <input type="number" id="input-meta-fat" value="60">
+      </div>
+    </div>
+    <button id="save-goals-btn" style="background: var(--accent-blue); margin-top: 12px;" type="button">Salvar Metas</button>
   </div>
 
   <script src="script.js"></script>
