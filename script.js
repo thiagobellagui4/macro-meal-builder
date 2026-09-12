@@ -1,3 +1,4 @@
+
 const foodInput = document.getElementById('food-input');
 const foodSuggestions = document.getElementById('food-suggestions');
 const portionInput = document.getElementById('portion-input');
