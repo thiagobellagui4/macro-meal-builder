@@ -80,11 +80,11 @@
       margin-bottom: 16px;
     }
 
-    .val {
-      font-size: 1.3rem;
-      font-weight: 800;
-      margin-top: 4px;
-      margin-bottom: 8px;
+    /* Rótulo e Meta discreta */
+    .card-header-sub {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
     }
 
     .sub {
@@ -93,6 +93,27 @@
       color: var(--subtext);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .meta-discrete {
+      font-size: 0.7rem;
+      font-weight: 500;
+      color: #64748b; /* Tom cinza mais sutil */
+    }
+
+    /* Valores */
+    .val {
+      font-size: 1.3rem;
+      font-weight: 800;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    .val-target {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: #64748b;
+      margin-left: 2px;
     }
 
     /* Barras de Progresso */
@@ -224,16 +245,22 @@
 </head>
 <body>
 
-  <!-- Top Banner -->
+  <!-- Banner do Topo -->
   <div class="header-banner">
     <img src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80" alt="Meal Builder">
     <h1>Meal Builder</h1>
   </div>
 
-  <!-- Dashboard Principal com Barras de Progresso -->
+  <!-- Dashboard Principal -->
   <div class="card">
-    <div class="sub">Energia Total</div>
-    <div class="val txt-kcal" id="kcal-val">0 / 1800 kcal</div>
+    <div class="card-header-sub">
+      <span class="sub">Energia Total</span>
+      <span class="meta-discrete">Meta: <span id="meta-kcal-txt">1800</span> kcal</span>
+    </div>
+    <div class="val txt-kcal">
+      <span id="kcal-val">0</span>
+      <span class="val-target">/ <span id="kcal-target">1800</span> kcal</span>
+    </div>
     <div class="progress-bar-bg">
       <div class="progress-bar-fill fill-kcal" id="kcal-bar"></div>
     </div>
@@ -241,15 +268,28 @@
 
   <div class="grid-2">
     <div class="card">
-      <div class="sub">Carboidratos</div>
-      <div class="val txt-carb" id="carb-val">0 / 200g</div>
+      <div class="card-header-sub">
+        <span class="sub">Carboidratos</span>
+        <span class="meta-discrete"><span id="meta-carb-txt">200</span>g</span>
+      </div>
+      <div class="val txt-carb">
+        <span id="carb-val">0.0</span>
+        <span class="val-target">/ <span id="carb-target">200</span>g</span>
+      </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill fill-carb" id="carb-bar"></div>
       </div>
     </div>
+
     <div class="card">
-      <div class="sub">Proteínas</div>
-      <div class="val txt-prot" id="prot-val">0 / 130g</div>
+      <div class="card-header-sub">
+        <span class="sub">Proteínas</span>
+        <span class="meta-discrete"><span id="meta-prot-txt">130</span>g</span>
+      </div>
+      <div class="val txt-prot">
+        <span id="prot-val">0.0</span>
+        <span class="val-target">/ <span id="prot-target">130</span>g</span>
+      </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill fill-prot" id="prot-bar"></div>
       </div>
@@ -257,8 +297,14 @@
   </div>
 
   <div class="card">
-    <div class="sub">Gorduras Totais</div>
-    <div class="val txt-fat" id="fat-val">0 / 60g</div>
+    <div class="card-header-sub">
+      <span class="sub">Gorduras Totais</span>
+      <span class="meta-discrete"><span id="meta-fat-txt">60</span>g</span>
+    </div>
+    <div class="val txt-fat">
+      <span id="fat-val">0.0</span>
+      <span class="val-target">/ <span id="fat-target">60</span>g</span>
+    </div>
     <div class="progress-bar-bg">
       <div class="progress-bar-fill fill-fat" id="fat-bar"></div>
     </div>
@@ -320,6 +366,6 @@
     </table>
   </div>
 
-  <script src="script.js?v=10"></script>
+  <script src="script.js?v=11"></script>
 </body>
 </html>
