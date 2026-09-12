@@ -64,22 +64,29 @@ async function buscarPorNome() {
     const data = await res.json();
 
     if (data.products && data.products.length > 0) {
-      const p = data.products[0];
+      // Procura o primeiro produto que tenha pelo menos calorias cadastradas
+      let p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
       const n = p.nutriments || {};
+
+      const kcal100 = n['energy-kcal_100g'] || n['energy-kcal'] || 0;
+      const prot100 = n.proteins_100g || n.proteins || 0;
+      const carb100 = n.carbohydrates_100g || n.carbohydrates || 0;
+      const fat100 = n.fat_100g || n.fat || 0;
+
       adicionarPrato(
         p.product_name_pt || p.product_name || termo,
         gramas,
-        (n['energy-kcal_100g'] || 0) * fator,
-        (n.proteins_100g || 0) * fator,
-        (n.carbohydrates_100g || 0) * fator,
-        (n.fat_100g || 0) * fator
+        kcal100 * fator,
+        prot100 * fator,
+        carb100 * fator,
+        fat100 * fator
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado.");
+      alert("Alimento não encontrado. Tente buscar um termo mais genérico (ex: 'Creme de leite' em vez da marca exata).");
     }
   } catch (e) {
-    alert("Erro ao buscar alimento.");
+    alert("Erro ao conectar com o banco de dados.");
   } finally {
     searchBtn.textContent = "Buscar e Adicionar";
     searchBtn.disabled = false;
@@ -141,7 +148,6 @@ function atualizarTela() {
     }
   });
 
-  // Atualizar textos e metas na tela
   kcalVal.textContent = tk.toFixed(1);
   dispMetaKcal.textContent = metas.kcal;
   txtMetaKcal.textContent = metas.kcal;
