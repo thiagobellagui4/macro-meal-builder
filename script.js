@@ -12,18 +12,25 @@ const goalProtInput = document.getElementById('goal-prot');
 const goalFatInput = document.getElementById('goal-fat');
 const saveGoalsBtn = document.getElementById('save-goals-btn');
 
-// Dashboard Totais + Barras de Progresso
+// Dashboard Totais Atuais
 const kcalVal = document.getElementById('kcal-val');
 const carbVal = document.getElementById('carb-val');
 const protVal = document.getElementById('prot-val');
 const fatVal = document.getElementById('fat-val');
 
+// Metas em Vermelho
+const metaKcalTxt = document.getElementById('meta-kcal-txt');
+const metaCarbTxt = document.getElementById('meta-carb-txt');
+const metaProtTxt = document.getElementById('meta-prot-txt');
+const metaFatTxt = document.getElementById('meta-fat-txt');
+
+// Barras de Progresso
 const kcalBar = document.getElementById('kcal-bar');
 const carbBar = document.getElementById('carb-bar');
 const protBar = document.getElementById('prot-bar');
 const fatBar = document.getElementById('fat-bar');
 
-// Chaves do LocalStorage
+// Storage Keys
 const STORAGE_KEY_ITEMS = 'macro_meal_builder_items';
 const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
 const STORAGE_KEY_CUSTOM = 'macro_meal_builder_custom_foods';
@@ -32,7 +39,7 @@ let refeicoes = [];
 let alimentosCustomizados = [];
 let metas = { kcal: 1800, carb: 200, prot: 130, fat: 60 };
 
-// Base de Dados Local Padrão
+// Base Local Padrão
 const BANCO_LOCAL = [
   { palavras: ['ovo', 'ovos', 'ovo cozido'], nome: 'Ovo Cozido', kcal: 155, prot: 13, carb: 1.1, fat: 11 },
   { palavras: ['frango', 'peito de frango', 'frango grelhado'], nome: 'Peito de Frango Grelhado', kcal: 165, prot: 31, carb: 0, fat: 3.6 },
@@ -52,7 +59,7 @@ const BANCO_LOCAL = [
   { palavras: ['queijo', 'queijo mussarela', 'mussarela'], nome: 'Queijo Mussarela', kcal: 280, prot: 18, carb: 3.1, fat: 22 }
 ];
 
-// 1. Carrega dados salvos
+// Inicialização
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem(STORAGE_KEY_ITEMS);
   if (salvas) refeicoes = JSON.parse(salvas);
@@ -67,47 +74,23 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// 2. Listeners
-if (searchBtn) {
-  searchBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    buscarEAdicionar();
-  });
-}
+// Event Listeners
+if (searchBtn) searchBtn.addEventListener('click', (e) => { e.preventDefault(); buscarEAdicionar(); });
+if (manualBtn) manualBtn.addEventListener('click', (e) => { e.preventDefault(); adicionarManual(foodInput.value.trim(), parseFloat(portionInput.value) || 100, true); });
+if (saveGoalsBtn) saveGoalsBtn.addEventListener('click', (e) => { e.preventDefault(); salvarMetas(); });
 
-if (manualBtn) {
-  manualBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    const termo = foodInput.value.trim();
-    const gramas = parseFloat(portionInput.value) || 100;
-    adicionarManual(termo, gramas, true);
-  });
-}
-
-if (saveGoalsBtn) {
-  saveGoalsBtn.addEventListener('click', (e) => {
-    e.preventDefault();
-    salvarMetas();
-  });
-}
-
-// 3. Salvar Novas Metas
+// Salvar Metas
 function salvarMetas() {
-  const novasKcal = parseFloat(goalKcalInput.value) || metas.kcal;
-  const novosCarbs = parseFloat(goalCarbInput.value) || metas.carb;
-  const novasProts = parseFloat(goalProtInput.value) || metas.prot;
-  const novasGorduras = parseFloat(goalFatInput.value) || metas.fat;
-
   metas = {
-    kcal: novasKcal,
-    carb: novosCarbs,
-    prot: novasProts,
-    fat: novasGorduras
+    kcal: parseFloat(goalKcalInput.value) || metas.kcal,
+    carb: parseFloat(goalCarbInput.value) || metas.carb,
+    prot: parseFloat(goalProtInput.value) || metas.prot,
+    fat: parseFloat(goalFatInput.value) || metas.fat
   };
 
   localStorage.setItem(STORAGE_KEY_GOALS, JSON.stringify(metas));
   atualizarTela();
-  alert("Metas diárias atualizadas com sucesso!");
+  alert("Metas diárias salvas com sucesso!");
 }
 
 function preencherCamposMetas() {
@@ -117,7 +100,7 @@ function preencherCamposMetas() {
   if (goalFatInput) goalFatInput.value = metas.fat;
 }
 
-// 4. Busca Híbrida
+// Busca e Adição
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -187,7 +170,7 @@ async function buscarEAdicionar() {
   }
 }
 
-// 5. Entrada Manual
+// Adição Manual
 function adicionarManual(termo, gramas, diretoPeloBotao = false) {
   let nomeAlimento = termo;
 
@@ -231,7 +214,7 @@ function adicionarManual(termo, gramas, diretoPeloBotao = false) {
 }
 
 function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
-  const novoAlimento = {
+  refeicoes.push({
     id: Date.now(),
     nome: nome,
     gramas: gramas,
@@ -239,9 +222,7 @@ function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
     prot: parseFloat(prot.toFixed(1)),
     carb: parseFloat(carb.toFixed(1)),
     fat: parseFloat(fat.toFixed(1))
-  };
-
-  refeicoes.push(novoAlimento);
+  });
   salvarEAtualizar();
 }
 
@@ -255,7 +236,7 @@ function salvarEAtualizar() {
   atualizarTela();
 }
 
-// 6. Atualiza Tela com Cálculo Dinâmico de Progresso (%)
+// Renderização na Tela
 function atualizarTela() {
   if (mealsTableBody) mealsTableBody.innerHTML = '';
 
@@ -280,15 +261,21 @@ function atualizarTela() {
     }
   });
 
-  // Atualiza Valores Textuais
-  if (kcalVal) kcalVal.textContent = `${totalKcal} / ${metas.kcal} kcal`;
-  if (carbVal) carbVal.textContent = `${totalCarb.toFixed(1)} / ${metas.carb}g`;
-  if (protVal) protVal.textContent = `${totalProt.toFixed(1)} / ${metas.prot}g`;
-  if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} / ${metas.fat}g`;
+  // Atualiza Consumo Atual (Esquerda)
+  if (kcalVal) kcalVal.textContent = totalKcal;
+  if (carbVal) carbVal.textContent = totalCarb.toFixed(1);
+  if (protVal) protVal.textContent = totalProt.toFixed(1);
+  if (fatVal) fatVal.textContent = totalFat.toFixed(1);
 
-  // Atualiza Largura das Barras de Progresso (limitado a 100%)
-  if (kcalBar) kcalBar.style.width = `${Math.min(100, (totalKcal / metas.kcal) * 100)}%`;
-  if (carbBar) carbBar.style.width = `${Math.min(100, (totalCarb / metas.carb) * 100)}%`;
-  if (protBar) protBar.style.width = `${Math.min(100, (totalProt / metas.prot) * 100)}%`;
-  if (fatBar) fatBar.style.width = `${Math.min(100, (totalFat / metas.fat) * 100)}%`;
+  // Atualiza Metas em Vermelho (Direita)
+  if (metaKcalTxt) metaKcalTxt.textContent = metas.kcal;
+  if (metaCarbTxt) metaCarbTxt.textContent = metas.carb;
+  if (metaProtTxt) metaProtTxt.textContent = metas.prot;
+  if (metaFatTxt) metaFatTxt.textContent = metas.fat;
+
+  // Atualiza Barras de Progresso
+  if (kcalBar) kcalBar.style.width = `${Math.min(100, (totalKcal / (metas.kcal || 1)) * 100)}%`;
+  if (carbBar) carbBar.style.width = `${Math.min(100, (totalCarb / (metas.carb || 1)) * 100)}%`;
+  if (protBar) protBar.style.width = `${Math.min(100, (totalProt / (metas.prot || 1)) * 100)}%`;
+  if (fatBar) fatBar.style.width = `${Math.min(100, (totalFat / (metas.fat || 1)) * 100)}%`;
 }
