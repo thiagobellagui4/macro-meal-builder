@@ -111,7 +111,7 @@ function limparCamposManuais() {
   manualFat.value = '';
 }
 
-// Pesquisa inteligente combinada
+// Sistema de Busca Estilo FatSecret (Focado em Marcas Nacionais e Produtos em Português)
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -124,28 +124,40 @@ if (foodInput) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=15`;
+        // Busca inteligente abrangendo termos globais e focando em registros do Brasil/PT
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=25`;
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          cacheProdutos = data.products.filter(p => 
+          // Filtra itens com dados nutricionais válidos
+          let produtosValidos = data.products.filter(p => 
             (p.product_name_pt || p.product_name) && 
             p.nutriments && 
             (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments['energy-kcal'] !== undefined)
           );
+
+          // Ordena para priorizar marcas nacionais e itens em português (Estilo FatSecret)
+          produtosValidos.sort((a, b) => {
+            const aBr = (a.countries_tags && a.countries_tags.includes('en:brazil')) || (a.lang === 'pt') ? 1 : 0;
+            const bBr = (b.countries_tags && b.countries_tags.includes('en:brazil')) || (b.lang === 'pt') ? 1 : 0;
+            return bBr - aBr;
+          });
+
+          cacheProdutos = produtosValidos.slice(0, 15);
           
           foodSuggestions.innerHTML = '';
           cacheProdutos.forEach(p => {
             const nome = p.product_name_pt || p.product_name;
-            const marca = p.brands ? ` (${p.brands})` : '';
-            const pais = p.countries_tags && p.countries_tags.includes('en:brazil') ? ' 🇧🇷' : '';
+            const marca = p.brands ? ` • ${p.brands}` : '';
+            const seloBr = (p.countries_tags && p.countries_tags.includes('en:brazil')) ? ' 🇧🇷' : '';
             
             const div = document.createElement('div');
             div.className = 'suggestion-item';
-            div.textContent = nome + marca + pais;
+            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}${seloBr}</span>`;
+            
             div.addEventListener('click', () => {
-              foodInput.value = nome;
+              foodInput.value = nome + (p.brands ? ` (${p.brands})` : '');
               foodSuggestions.style.display = 'none';
             });
             foodSuggestions.appendChild(div);
@@ -186,7 +198,10 @@ async function buscarPorNome() {
 
   const fator = gramas / 100;
   try {
-    let p = cacheProdutos.find(prod => (prod.product_name_pt === termo || prod.product_name === termo));
+    let p = cacheProdutos.find(prod => {
+      const nomeCompleto = (prod.product_name_pt || prod.product_name) + (prod.brands ? ` (${prod.brands})` : '');
+      return nomeCompleto === termo || (prod.product_name_pt === termo || prod.product_name === termo);
+    });
     
     if (!p) {
       const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=5`);
@@ -203,8 +218,10 @@ async function buscarPorNome() {
       const carb100 = n.carbohydrates_100g || n.carbohydrates || 0;
       const fat100 = n.fat_100g || n.fat || 0;
 
+      const nomeExibicao = (p.product_name_pt || p.product_name) + (p.brands ? ` (${p.brands})` : '');
+
       adicionarPrato(
-        p.product_name_pt || p.product_name || termo,
+        nomeExibicao,
         gramas,
         kcal100 * fator,
         prot100 * fator,
@@ -213,7 +230,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo!");
+      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo rapidamente!");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
