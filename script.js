@@ -17,20 +17,27 @@ const STORAGE_KEY_GOALS = 'macro_meal_builder_goals';
 let refeicoes = [];
 let metas = { kcal: 1800, carb: 200, prot: 130, fat: 60 };
 
-// Banco Local de Alimentos (Responde na hora e funciona offline)
+// Base de Dados Local Ampliada (Funciona offline e dá resposta instantânea)
 const BANCO_LOCAL = [
   { palavras: ['ovo', 'ovos', 'ovo cozido'], nome: 'Ovo Cozido', kcal: 155, prot: 13, carb: 1.1, fat: 11 },
   { palavras: ['frango', 'peito de frango', 'frango grelhado'], nome: 'Peito de Frango Grelhado', kcal: 165, prot: 31, carb: 0, fat: 3.6 },
   { palavras: ['arroz', 'arroz branco'], nome: 'Arroz Branco Cozido', kcal: 130, prot: 2.7, carb: 28, fat: 0.3 },
-  { palavras: ['feijão', 'feijao', 'feijão preto'], nome: 'Feijão Preto Cozido', kcal: 77, prot: 4.5, carb: 14, fat: 0.5 },
+  { palavras: ['feijao', 'feijão', 'feijão preto'], nome: 'Feijão Preto Cozido', kcal: 77, prot: 4.5, carb: 14, fat: 0.5 },
   { palavras: ['banana', 'banana nanica', 'banana prata'], nome: 'Banana', kcal: 89, prot: 1.1, carb: 23, fat: 0.3 },
-  { palavras: ['pão', 'pao', 'pão de fôrma', 'pao de forma'], nome: 'Pão de Fôrma', kcal: 265, prot: 9, carb: 49, fat: 3.2 },
-  { palavras: ['carne', 'patinho', 'carne moída'], nome: 'Patinho Grelhado/Moído', kcal: 219, prot: 35, carb: 0, fat: 7.3 },
+  { palavras: ['pao', 'pão', 'pao de forma', 'pão de fôrma'], nome: 'Pão de Fôrma', kcal: 265, prot: 9, carb: 49, fat: 3.2 },
+  { palavras: ['carne', 'patinho', 'carne moida', 'carne moída'], nome: 'Patinho Grelhado/Moído', kcal: 219, prot: 35, carb: 0, fat: 7.3 },
   { palavras: ['leite', 'leite integral'], nome: 'Leite Integral', kcal: 61, prot: 3.2, carb: 4.8, fat: 3.2 },
-  { palavras: ['aveia'], nome: 'Aveia em Flocos', kcal: 394, prot: 13.9, carb: 66.6, fat: 8.5 }
+  { palavras: ['aveia', 'aveia em flocos'], nome: 'Aveia em Flocos', kcal: 394, prot: 13.9, carb: 66.6, fat: 8.5 },
+  { palavras: ['iogurte', 'iogurte desnatado'], nome: 'Iogurte Desnatado', kcal: 43, prot: 4.7, carb: 6, fat: 0.2 },
+  { palavras: ['iogurte natural', 'iogurte integral'], nome: 'Iogurte Natural Integral', kcal: 61, prot: 3.5, carb: 4.7, fat: 3.3 },
+  { palavras: ['tilapia', 'tilápia', 'peixe', 'file de tilapia'], nome: 'Filé de Tilápia Grelhado', kcal: 128, prot: 26, carb: 0, fat: 2.7 },
+  { palavras: ['batata doce', 'batata-doce'], nome: 'Batata Doce Cozida', kcal: 86, prot: 1.6, carb: 20, fat: 0.1 },
+  { palavras: ['pasta de amendoim', 'amendoim'], nome: 'Pasta de Amendoim', kcal: 588, prot: 25, carb: 20, fat: 50 },
+  { palavras: ['mandioca', 'aipim', 'macaxeira'], nome: 'Mandioca Cozida', kcal: 160, prot: 1.4, carb: 38, fat: 0.3 },
+  { palavras: ['queijo', 'queijo mussarela', 'mussarela'], nome: 'Queijo Mussarela', kcal: 280, prot: 18, carb: 3.1, fat: 22 }
 ];
 
-// 1. Carrega os dados do LocalStorage ao abrir
+// 1. Carrega dados salvos ao iniciar a página
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem(STORAGE_KEY_ITEMS);
   if (salvas) refeicoes = JSON.parse(salvas);
@@ -42,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// 2. Evento do botão "Buscar e Adicionar"
+// 2. Listener do botão de busca
 if (searchBtn) {
   searchBtn.addEventListener('click', (e) => {
     e.preventDefault();
@@ -50,7 +57,7 @@ if (searchBtn) {
   });
 }
 
-// 3. Função Híbrida de Busca
+// 3. Busca Híbrida Inteligente
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -62,8 +69,10 @@ async function buscarEAdicionar() {
 
   const fator = gramas / 100;
 
-  // Busca 1: Verifica no banco local
-  const itemLocal = BANCO_LOCAL.find(item => item.palavras.some(p => termo.includes(p)));
+  // Busca 1: Banco Local (procura por palavras que contenham ou estejam contidas no termo)
+  const itemLocal = BANCO_LOCAL.find(item => 
+    item.palavras.some(p => termo.includes(p) || p.includes(termo))
+  );
 
   if (itemLocal) {
     const novoAlimento = {
@@ -82,7 +91,7 @@ async function buscarEAdicionar() {
     return;
   }
 
-  // Busca 2: Se não achar localmente, tenta na API externa
+  // Busca 2: API Externa da Open Food Facts
   searchBtn.textContent = "Buscando...";
   searchBtn.disabled = true;
 
@@ -117,7 +126,7 @@ async function buscarEAdicionar() {
       adicionarManual(termo, gramas);
     }
   } catch (erro) {
-    console.error("Erro de conexão na busca:", erro);
+    console.error("Erro na busca:", erro);
     adicionarManual(termo, gramas);
   } finally {
     searchBtn.textContent = "Buscar e Adicionar";
@@ -125,7 +134,7 @@ async function buscarEAdicionar() {
   }
 }
 
-// Entra em modo manual caso o alimento não exista nem na API
+// 4. Entrada Manual de Emergência
 function adicionarManual(termo, gramas) {
   const confirmar = confirm(`Alimento "${termo}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
   if (!confirmar) return;
@@ -150,16 +159,19 @@ function adicionarManual(termo, gramas) {
   foodInput.value = '';
 }
 
+// 5. Remove alimento
 function removerAlimento(id) {
   refeicoes = refeicoes.filter(item => item.id !== id);
   salvarEAtualizar();
 }
 
+// 6. Salva no LocalStorage e atualiza a tela
 function salvarEAtualizar() {
   localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
 }
 
+// 7. Atualiza Dashboard e Tabela
 function atualizarTela() {
   if (mealsTableBody) mealsTableBody.innerHTML = '';
 
@@ -190,6 +202,7 @@ function atualizarTela() {
   if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
 }
 
+// 8. Atualiza Metas
 function atualizarMetasNaTela() {
   const targetKcal = document.getElementById('target-kcal-label');
   const targetCarb = document.getElementById('target-carb-label');
