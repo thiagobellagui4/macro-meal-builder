@@ -10,9 +10,12 @@
       --card-bg: #1e293b;
       --input-bg: #334155;
       --accent-green: #10b981;
+      --accent-blue: #3b82f6;
       --accent-orange: #f59e0b;
+      --accent-pink: #ec4899;
       --secondary: #475569;
       --text: #f8fafc;
+      --subtext: #94a3b8;
       --border: #334155;
     }
     body {
@@ -29,10 +32,16 @@
       padding: 16px;
       margin-bottom: 16px;
     }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
     .val-row { display: flex; justify-content: space-between; margin: 6px 0 10px; }
     .val { font-size: 1.25rem; font-weight: 800; }
+    .sub { font-size: 0.8rem; color: var(--subtext); }
     .progress-bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 999px; overflow: hidden; }
-    .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; background-color: var(--accent-orange); }
+    .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; }
+    .fill-kcal { background-color: var(--accent-orange); }
+    .fill-prot { background-color: var(--accent-green); }
+    .fill-carb { background-color: var(--accent-blue); }
+    .fill-fat { background-color: var(--accent-pink); }
     input, button {
       width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem;
     }
@@ -46,13 +55,30 @@
 <body>
   <h1>NutriMeta</h1>
   
+  <!-- Painel de Calorias -->
   <div class="card">
     <span>Energia Total</span>
-    <div class="val-row"><span class="val"><span id="kcal-val">0</span> kcal</span></div>
-    <div class="progress-bar-bg"><div class="progress-bar-fill" id="kcal-bar"></div></div>
+    <div class="val-row">
+      <span class="val"><span id="kcal-val">0</span> / <span id="kcal-meta">2000</span> kcal</span>
+    </div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill fill-kcal" id="kcal-bar"></div></div>
   </div>
 
-  <div class="card">
+  <!-- Painel de Macronutrientes -->
+  <div class="grid-2">
+    <div class="card" style="margin-bottom:0;">
+      <span class="sub">Proteínas</span>
+      <div class="val-row"><span class="val" style="font-size:1.05rem;"><span id="prot-val">0</span>g</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill fill-prot" id="prot-bar"></div></div>
+    </div>
+    <div class="card" style="margin-bottom:0;">
+      <span class="sub">Carboidratos</span>
+      <div class="val-row"><span class="val" style="font-size:1.05rem;"><span id="carb-val">0</span>g</span></div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill fill-carb" id="carb-bar"></div></div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top: 16px;">
     <h3>+ Adicionar Alimento</h3>
     <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango, Aveia)...">
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
