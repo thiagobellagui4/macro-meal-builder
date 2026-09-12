@@ -4,352 +4,88 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NutriMeta</title>
+  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
       --bg: #0f172a;
       --card-bg: #1e293b;
       --input-bg: #334155;
       --accent-green: #10b981;
-      --accent-green-hover: #059669;
       --accent-blue: #3b82f6;
       --accent-orange: #f59e0b;
       --accent-pink: #ec4899;
-      --accent-red: #ef4444; /* Cor vermelha da meta */
+      --accent-red: #ef4444;
       --secondary: #475569;
-      --secondary-hover: #334155;
       --text: #f8fafc;
       --subtext: #94a3b8;
       --border: #334155;
-      --progress-bg: #334155;
     }
-
     body {
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: system-ui, -apple-system, sans-serif;
       background-color: var(--bg);
       color: var(--text);
       margin: 0 auto;
       max-width: 480px;
-      padding: 16px 16px 40px 16px;
+      padding: 16px;
     }
-
-    .header-banner {
-      text-align: center;
-      margin-bottom: 20px;
-    }
-
-    .header-banner img {
-      width: 100%;
-      height: 120px;
-      object-fit: cover;
-      border-radius: 16px;
-      margin-bottom: 12px;
-      border: 1px solid var(--border);
-    }
-
-    h1 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      margin: 0;
-      background: linear-gradient(to right, var(--accent-green), var(--accent-blue));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
-    h3 {
-      margin-top: 0;
-      margin-bottom: 14px;
-      font-size: 0.9rem;
-      font-weight: 700;
-      color: var(--text);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
     .card {
       background-color: var(--card-bg);
-      border: 1px solid rgba(255, 255, 255, 0.05);
       border-radius: 16px;
       padding: 16px;
       margin-bottom: 16px;
-      box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.3);
     }
-
-    .grid-2 {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 16px;
+    .val-row { display: flex; justify-content: space-between; margin: 6px 0 10px; }
+    .val { font-size: 1.25rem; font-weight: 800; }
+    .progress-bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 999px; overflow: hidden; }
+    .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; background-color: var(--accent-orange); }
+    input, button {
+      width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem;
     }
-
-    .sub {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--subtext);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      display: block;
+    input { background: var(--input-bg); color: var(--text); }
+    button { background: var(--accent-green); color: #fff; font-weight: bold; cursor: pointer; }
+    .btn-camera { background: var(--accent-blue); }
+    .btn-sec { background: var(--secondary); }
+    table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
+    th, td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
+    #reader-modal {
+      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.9); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px;
     }
-
-    /* Linha do Valor + Meta */
-    .val-row {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-      margin-top: 6px;
-      margin-bottom: 10px;
-    }
-
-    .val {
-      font-size: 1.25rem;
-      font-weight: 800;
-    }
-
-    /* Meta Vermelha à Direita */
-    .meta-red {
-      font-size: 0.75rem;
-      font-weight: 700;
-      color: var(--accent-red);
-      white-space: nowrap;
-    }
-
-    /* Barras de Progresso */
-    .progress-bar-bg {
-      width: 100%;
-      height: 8px;
-      background-color: var(--progress-bg);
-      border-radius: 999px;
-      overflow: hidden;
-    }
-
-    .progress-bar-fill {
-      height: 100%;
-      width: 0%;
-      border-radius: 999px;
-      transition: width 0.4s ease;
-    }
-
-    .fill-kcal { background-color: var(--accent-orange); }
-    .fill-carb { background-color: var(--accent-blue); }
-    .fill-prot { background-color: var(--accent-green); }
-    .fill-fat { background-color: var(--accent-pink); }
-
-    .txt-kcal { color: var(--accent-orange); }
-    .txt-carb { color: var(--accent-blue); }
-    .txt-prot { color: var(--accent-green); }
-    .txt-fat { color: var(--accent-pink); }
-
-    /* Inputs e Botões */
-    label {
-      display: block;
-      margin-top: 10px;
-      font-size: 0.8rem;
-      font-weight: 500;
-      color: var(--subtext);
-    }
-
-    input {
-      width: 100%;
-      padding: 12px;
-      margin-top: 6px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background-color: var(--input-bg);
-      color: var(--text);
-      box-sizing: border-box;
-      font-size: 0.95rem;
-      outline: none;
-      transition: border-color 0.2s ease;
-    }
-
-    input:focus {
-      border-color: var(--accent-green);
-    }
-
-    button {
-      width: 100%;
-      padding: 12px;
-      border-radius: 10px;
-      border: none;
-      background-color: var(--accent-green);
-      color: #ffffff;
-      font-weight: 700;
-      font-size: 0.95rem;
-      cursor: pointer;
-      margin-top: 12px;
-      transition: transform 0.1s ease, background-color 0.2s ease;
-    }
-
-    button:active {
-      transform: scale(0.98);
-      background-color: var(--accent-green-hover);
-    }
-
-    .btn-secondary {
-      background-color: var(--secondary);
-      margin-top: 8px;
-    }
-
-    .btn-secondary:active {
-      background-color: var(--secondary-hover);
-    }
-
-    /* Tabela */
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 0.88rem;
-    }
-
-    th {
-      color: var(--subtext);
-      font-size: 0.75rem;
-      text-transform: uppercase;
-      text-align: left;
-      padding: 8px 4px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    td {
-      padding: 10px 4px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    }
-
-    .btn-del {
-      background: rgba(239, 68, 68, 0.15);
-      color: #ef4444;
-      border-radius: 50%;
-      width: 26px;
-      height: 26px;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 0.8rem;
-      cursor: pointer;
-    }
-
-    .grid-inputs, .grid-goals {
-      display: grid;
-      gap: 10px;
-    }
-
-    .grid-inputs { grid-template-columns: 2fr 1fr; }
-    .grid-goals { grid-template-columns: 1fr 1fr; }
+    #reader { width: 100%; max-width: 360px; background: #000; border-radius: 12px; overflow: hidden; }
   </style>
 </head>
 <body>
-
-  <!-- Banner do Topo -->
-  <div class="header-banner">
-    <img src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?auto=format&fit=crop&w=800&q=80" alt="NutriMeta">
-    <h1>NutriMeta</h1>
-  </div>
-
-  <!-- Dashboard Principal -->
+  <h1>NutriMeta</h1>
+  
   <div class="card">
-    <span class="sub">Energia Total</span>
-    <div class="val-row">
-      <span class="val txt-kcal"><span id="kcal-val">0</span> kcal</span>
-      <span class="meta-red">Meta: <span id="meta-kcal-txt">1800</span> kcal</span>
-    </div>
-    <div class="progress-bar-bg">
-      <div class="progress-bar-fill fill-kcal" id="kcal-bar"></div>
-    </div>
+    <span>Energia Total</span>
+    <div class="val-row"><span class="val"><span id="kcal-val">0</span> kcal</span></div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="kcal-bar"></div></div>
   </div>
 
-  <div class="grid-2">
-    <div class="card">
-      <span class="sub">Carboidratos</span>
-      <div class="val-row">
-        <span class="val txt-carb"><span id="carb-val">0.0</span> g</span>
-        <span class="meta-red">Meta: <span id="meta-carb-txt">200</span>g</span>
-      </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill fill-carb" id="carb-bar"></div>
-      </div>
-    </div>
-
-    <div class="card">
-      <span class="sub">Proteínas</span>
-      <div class="val-row">
-        <span class="val txt-prot"><span id="prot-val">0.0</span> g</span>
-        <span class="meta-red">Meta: <span id="meta-prot-txt">130</span>g</span>
-      </div>
-      <div class="progress-bar-bg">
-        <div class="progress-bar-fill fill-prot" id="prot-bar"></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <span class="sub">Gorduras Totais</span>
-    <div class="val-row">
-      <span class="val txt-fat"><span id="fat-val">0.0</span> g</span>
-      <span class="meta-red">Meta: <span id="meta-fat-txt">60</span>g</span>
-    </div>
-    <div class="progress-bar-bg">
-      <div class="progress-bar-fill fill-fat" id="fat-bar"></div>
-    </div>
-  </div>
-
-  <!-- Definir Metas -->
-  <div class="card">
-    <h3>Definir Metas Diárias</h3>
-    <div class="grid-goals">
-      <div>
-        <label for="goal-kcal">Calorias (kcal)</label>
-        <input type="number" id="goal-kcal" placeholder="1800">
-      </div>
-      <div>
-        <label for="goal-carb">Carboidratos (g)</label>
-        <input type="number" id="goal-carb" placeholder="200">
-      </div>
-      <div>
-        <label for="goal-prot">Proteínas (g)</label>
-        <input type="number" id="goal-prot" placeholder="130">
-      </div>
-      <div>
-        <label for="goal-fat">Gorduras (g)</label>
-        <input type="number" id="goal-fat" placeholder="60">
-      </div>
-    </div>
-    <button id="save-goals-btn" type="button" class="btn-secondary">Salvar Metas</button>
-  </div>
-
-  <!-- Adicionar Alimento -->
   <div class="card">
     <h3>+ Adicionar Alimento</h3>
-    
-    <label for="food-input">Nome do Alimento</label>
-    <div class="grid-inputs">
-      <input type="text" id="food-input" placeholder="Ex: Ovo, Peito de frango..." autocomplete="off">
-      <input type="number" id="portion-input" value="100" min="1" placeholder="Gramas">
-    </div>
-
+    <button id="cam-btn" class="btn-camera" type="button">📷 Escanear Código de Barras</button>
+    <input type="text" id="food-input" placeholder="Ou digite o nome do alimento...">
+    <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
-    <button id="manual-btn" type="button" class="btn-secondary">Adicionar Manualmente</button>
   </div>
 
-  <!-- Lista de Refeições -->
   <div class="card">
     <h3>Refeições Registradas</h3>
     <table>
       <thead>
-        <tr>
-          <th>Alimento</th>
-          <th>Qtd</th>
-          <th>Prot</th>
-          <th>Kcal</th>
-          <th></th>
-        </tr>
+        <tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Kcal</th></tr>
       </thead>
-      <tbody id="meals-table-body">
-      </tbody>
+      <tbody id="meals-table-body"></tbody>
     </table>
   </div>
 
-  <script src="script.js?v=14"></script>
+  <div id="reader-modal">
+    <div id="reader"></div>
+    <button id="close-cam-btn" class="btn-sec" style="margin-top: 16px; max-width: 360px;">Fechar Câmera</button>
+  </div>
+
+  <script src="script.js"></script>
 </body>
 </html>
