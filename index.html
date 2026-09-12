@@ -78,6 +78,11 @@
       grid-template-columns: 2fr 1fr;
       gap: 10px;
     }
+    .grid-goals {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
   </style>
 </head>
 <body>
@@ -106,6 +111,30 @@
       <div class="val" id="fat-val">0 g</div>
       <div class="sub" id="target-fat-label">Meta: 60g</div>
     </div>
+  </div>
+
+  <!-- Editar Metas -->
+  <div class="card">
+    <h3>Definir Metas Diárias</h3>
+    <div class="grid-goals">
+      <div>
+        <label for="goal-kcal">Calorias (kcal)</label>
+        <input type="number" id="goal-kcal" placeholder="1800">
+      </div>
+      <div>
+        <label for="goal-carb">Carboidratos (g)</label>
+        <input type="number" id="goal-carb" placeholder="200">
+      </div>
+      <div>
+        <label for="goal-prot">Proteínas (g)</label>
+        <input type="number" id="goal-prot" placeholder="130">
+      </div>
+      <div>
+        <label for="goal-fat">Gorduras (g)</label>
+        <input type="number" id="goal-fat" placeholder="60">
+      </div>
+    </div>
+    <button id="save-goals-btn" type="button" class="btn-secondary">Salvar Metas</button>
   </div>
 
   <!-- Adicionar ao Prato -->
@@ -140,6 +169,6 @@
     </table>
   </div>
 
-  <script src="script.js?v=5"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>
