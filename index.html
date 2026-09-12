@@ -10,6 +10,8 @@
       --card-bg: #1e1e1e;
       --accent: #2e7d32;
       --accent-hover: #388e3c;
+      --secondary: #333333;
+      --secondary-hover: #444444;
       --text: #ffffff;
       --subtext: #a0a0a0;
       --border: #333333;
@@ -56,6 +58,12 @@
       margin-top: 14px;
     }
     button:active { background-color: var(--accent-hover); }
+
+    .btn-secondary {
+      background-color: var(--secondary);
+      margin-top: 8px;
+    }
+    .btn-secondary:active { background-color: var(--secondary-hover); }
     
     table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
     th, td { text-align: left; padding: 8px 4px; border-bottom: 1px solid var(--border); }
@@ -111,6 +119,7 @@
     </div>
 
     <button id="search-btn" type="button">Buscar e Adicionar</button>
+    <button id="manual-btn" type="button" class="btn-secondary">Adicionar Manualmente</button>
   </div>
 
   <!-- Tabela de Alimentos do Prato -->
@@ -131,6 +140,6 @@
     </table>
   </div>
 
-  <script src="script.js"></script>
+  <script src="script.js?v=4"></script>
 </body>
 </html>
