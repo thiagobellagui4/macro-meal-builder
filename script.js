@@ -66,7 +66,7 @@ if (searchBtn) {
 if (manualBtn) {
   manualBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    const termo = foodInput.value.trim() || "Alimento Personalizado";
+    const termo = foodInput.value.trim();
     const gramas = parseFloat(portionInput.value) || 100;
     adicionarManual(termo, gramas, true);
   });
@@ -147,22 +147,26 @@ async function buscarEAdicionar() {
 
 // 4. Entrada Manual + Gravação Automática
 function adicionarManual(termo, gramas, diretoPeloBotao = false) {
-  if (!diretoPeloBotao) {
-    const confirmar = confirm(`Alimento "${termo}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
+  let nomeAlimento = termo;
+
+  if (diretoPeloBotao || !nomeAlimento) {
+    const nomeDigitado = prompt("Digite o nome do alimento:", foodInput.value.trim() || "");
+    if (!nomeDigitado) return;
+    nomeAlimento = nomeDigitado;
+  } else {
+    const confirmar = confirm(`Alimento "${nomeAlimento}" não encontrado automaticamente. Deseja informar os nutrientes manualmente?`);
     if (!confirmar) return;
   }
 
-  const kcal = parseFloat(prompt(`Calorias totais para ${gramas}g de ${termo}:`, "100")) || 0;
+  const kcal = parseFloat(prompt(`Calorias totais para ${gramas}g de ${nomeAlimento}:`, "100")) || 0;
   const prot = parseFloat(prompt(`Proteínas (g) totais:`, "10")) || 0;
   const carb = parseFloat(prompt(`Carboidratos (g) totais:`, "0")) || 0;
   const fat = parseFloat(prompt(`Gorduras (g) totais:`, "0")) || 0;
 
-  // Converte os valores informados para a proporção padrão de 100g
   const fator100 = 100 / gramas;
-  const nomeFormatado = termo.charAt(0).toUpperCase() + termo.slice(1);
-  const termoChave = termo.toLowerCase().trim();
+  const nomeFormatado = nomeAlimento.charAt(0).toUpperCase() + nomeAlimento.slice(1);
+  const termoChave = nomeAlimento.toLowerCase().trim();
 
-  // Salva no banco de dados customizado permanente
   const jaExisteIdx = alimentosCustomizados.findIndex(a => a.nome.toLowerCase() === termoChave);
   const itemCustom = {
     palavras: [termoChave],
@@ -180,7 +184,6 @@ function adicionarManual(termo, gramas, diretoPeloBotao = false) {
   }
   localStorage.setItem(STORAGE_KEY_CUSTOM, JSON.stringify(alimentosCustomizados));
 
-  // Adiciona à lista do dia
   adicionarPratoAoMenu(nomeFormatado, gramas, kcal, prot, carb, fat);
   foodInput.value = '';
 }
