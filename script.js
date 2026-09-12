@@ -5,6 +5,13 @@ const searchBtn = document.getElementById('search-btn');
 const manualBtn = document.getElementById('manual-btn');
 const mealsTableBody = document.getElementById('meals-table-body');
 
+// Inputs de Metas
+const goalKcalInput = document.getElementById('goal-kcal');
+const goalCarbInput = document.getElementById('goal-carb');
+const goalProtInput = document.getElementById('goal-prot');
+const goalFatInput = document.getElementById('goal-fat');
+const saveGoalsBtn = document.getElementById('save-goals-btn');
+
 // Dashboard Totais
 const kcalVal = document.getElementById('kcal-val');
 const carbVal = document.getElementById('carb-val');
@@ -51,6 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const customizados = localStorage.getItem(STORAGE_KEY_CUSTOM);
   if (customizados) alimentosCustomizados = JSON.parse(customizados);
 
+  preencherCamposMetas();
   atualizarMetasNaTela();
   atualizarTela();
 });
@@ -72,7 +80,40 @@ if (manualBtn) {
   });
 }
 
-// 3. Busca Híbrida Inteligente
+if (saveGoalsBtn) {
+  saveGoalsBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    salvarMetas();
+  });
+}
+
+// 3. Salvar Novas Metas (Corrigido)
+function salvarMetas() {
+  const novasKcal = parseFloat(goalKcalInput.value) || metas.kcal;
+  const novosCarbs = parseFloat(goalCarbInput.value) || metas.carb;
+  const novasProts = parseFloat(goalProtInput.value) || metas.prot;
+  const novasGorduras = parseFloat(goalFatInput.value) || metas.fat;
+
+  metas = {
+    kcal: novasKcal,
+    carb: novosCarbs,
+    prot: novasProts,
+    fat: novasGorduras
+  };
+
+  localStorage.setItem(STORAGE_KEY_GOALS, JSON.stringify(metas));
+  atualizarMetasNaTela();
+  alert("Metas diárias atualizadas com sucesso!");
+}
+
+function preencherCamposMetas() {
+  if (goalKcalInput) goalKcalInput.value = metas.kcal;
+  if (goalCarbInput) goalCarbInput.value = metas.carb;
+  if (goalProtInput) goalProtInput.value = metas.prot;
+  if (goalFatInput) goalFatInput.value = metas.fat;
+}
+
+// 4. Busca Híbrida Inteligente
 async function buscarEAdicionar() {
   const termo = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
@@ -84,7 +125,7 @@ async function buscarEAdicionar() {
 
   const fator = gramas / 100;
 
-  // Busca 0: Alimentos Manuais Gravados do Usuário
+  // Busca 0: Alimentos Manuais Gravados
   const customEncontrado = alimentosCustomizados.find(item => 
     item.palavras.some(p => termo.includes(p) || p.includes(termo))
   );
@@ -95,7 +136,7 @@ async function buscarEAdicionar() {
     return;
   }
 
-  // Busca 1: Banco Local Padrão
+  // Busca 1: Banco Local
   const itemLocal = BANCO_LOCAL.find(item => 
     item.palavras.some(p => termo.includes(p) || p.includes(termo))
   );
@@ -145,7 +186,7 @@ async function buscarEAdicionar() {
   }
 }
 
-// 4. Entrada Manual + Gravação Automática
+// 5. Entrada Manual + Gravação Automática
 function adicionarManual(termo, gramas, diretoPeloBotao = false) {
   let nomeAlimento = termo;
 
@@ -204,19 +245,19 @@ function adicionarPratoAoMenu(nome, gramas, kcal, prot, carb, fat) {
   salvarEAtualizar();
 }
 
-// 5. Remove alimento
+// 6. Remove alimento
 function removerAlimento(id) {
   refeicoes = refeicoes.filter(item => item.id !== id);
   salvarEAtualizar();
 }
 
-// 6. Salva no LocalStorage
+// 7. Salva no LocalStorage
 function salvarEAtualizar() {
   localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(refeicoes));
   atualizarTela();
 }
 
-// 7. Atualiza Dashboard e Tabela
+// 8. Atualiza Dashboard e Tabela
 function atualizarTela() {
   if (mealsTableBody) mealsTableBody.innerHTML = '';
 
@@ -247,7 +288,7 @@ function atualizarTela() {
   if (fatVal) fatVal.textContent = `${totalFat.toFixed(1)} g`;
 }
 
-// 8. Atualiza Metas
+// 9. Atualiza Metas na Tela
 function atualizarMetasNaTela() {
   const targetKcal = document.getElementById('target-kcal-label');
   const targetCarb = document.getElementById('target-carb-label');
