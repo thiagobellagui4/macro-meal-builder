@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// Evento de digitação para buscar e abrir a caixa de sugestões
+// Pesquisa global em tempo real na base de dados
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -62,37 +62,41 @@ if (foodInput) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       try {
-        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=8`);
+        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=12`);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          cacheProdutos = data.products;
-          foodSuggestions.innerHTML = '';
+          // Filtra apenas produtos que tenham nome válido para evitar lixo da API
+          cacheProdutos = data.products.filter(p => (p.product_name_pt || p.product_name));
           
-          data.products.forEach(p => {
+          foodSuggestions.innerHTML = '';
+          cacheProdutos.forEach(p => {
             const nome = p.product_name_pt || p.product_name;
-            if (nome) {
-              const div = document.createElement('div');
-              div.className = 'suggestion-item';
-              div.textContent = nome;
-              div.addEventListener('click', () => {
-                foodInput.value = nome;
-                foodSuggestions.style.display = 'none';
-              });
-              foodSuggestions.appendChild(div);
-            }
+            const div = document.createElement('div');
+            div.className = 'suggestion-item';
+            div.textContent = nome;
+            div.addEventListener('click', () => {
+              foodInput.value = nome;
+              foodSuggestions.style.display = 'none';
+            });
+            foodSuggestions.appendChild(div);
           });
-          foodSuggestions.style.display = 'block';
+          
+          if (cacheProdutos.length > 0) {
+            foodSuggestions.style.display = 'block';
+          } else {
+            foodSuggestions.style.display = 'none';
+          }
         } else {
           foodSuggestions.style.display = 'none';
         }
       } catch (err) {
         foodSuggestions.style.display = 'none';
       }
-    }, 400);
+    }, 300);
   });
 
-  // Fecha a lista se clicar fora
+  // Fecha se clicar fora
   document.addEventListener('click', (e) => {
     if (!foodInput.contains(e.target) && !foodSuggestions.contains(e.target)) {
       foodSuggestions.style.display = 'none';
@@ -106,7 +110,7 @@ if (saveGoalsBtn) saveGoalsBtn.addEventListener('click', salvarMetas);
 async function buscarPorNome() {
   const termo = foodInput.value.trim();
   const gramas = parseFloat(portionInput.value) || 100;
-  if (!termo) return alert("Digite o nome do alimento.");
+  if (!termo) return alert("Digite ou selecione o nome do alimento.");
 
   foodSuggestions.style.display = 'none';
   searchBtn.textContent = "Buscando...";
@@ -141,7 +145,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado.");
+      alert("Alimento não encontrado na base global.");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
