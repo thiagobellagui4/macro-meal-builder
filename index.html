@@ -14,6 +14,7 @@
       --accent-blue: #3b82f6;
       --accent-orange: #f59e0b;
       --accent-pink: #ec4899;
+      --accent-red: #ef4444; /* Cor vermelha para as metas */
       --secondary: #475569;
       --secondary-hover: #334155;
       --text: #f8fafc;
@@ -80,40 +81,35 @@
       margin-bottom: 16px;
     }
 
-    /* Rótulo e Meta discreta */
-    .card-header-sub {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-
     .sub {
       font-size: 0.75rem;
       font-weight: 600;
       color: var(--subtext);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      display: block;
     }
 
-    .meta-discrete {
-      font-size: 0.7rem;
-      font-weight: 500;
-      color: #64748b; /* Tom cinza mais sutil */
-    }
-
-    /* Valores */
-    .val {
-      font-size: 1.3rem;
-      font-weight: 800;
+    /* Linha do Valor + Meta no final à direita */
+    .val-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
       margin-top: 4px;
       margin-bottom: 8px;
     }
 
-    .val-target {
-      font-size: 0.85rem;
-      font-weight: 600;
-      color: #64748b;
-      margin-left: 2px;
+    .val {
+      font-size: 1.3rem;
+      font-weight: 800;
+    }
+
+    /* Estilo da Meta em Vermelho no canto direito */
+    .meta-red {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent-red);
+      white-space: nowrap;
     }
 
     /* Barras de Progresso */
@@ -253,13 +249,10 @@
 
   <!-- Dashboard Principal -->
   <div class="card">
-    <div class="card-header-sub">
-      <span class="sub">Energia Total</span>
-      <span class="meta-discrete">Meta: <span id="meta-kcal-txt">1800</span> kcal</span>
-    </div>
-    <div class="val txt-kcal">
-      <span id="kcal-val">0</span>
-      <span class="val-target">/ <span id="kcal-target">1800</span> kcal</span>
+    <span class="sub">Energia Total</span>
+    <div class="val-row">
+      <span class="val txt-kcal"><span id="kcal-val">0</span> kcal</span>
+      <span class="meta-red">Meta: <span id="meta-kcal-txt">1800</span> kcal</span>
     </div>
     <div class="progress-bar-bg">
       <div class="progress-bar-fill fill-kcal" id="kcal-bar"></div>
@@ -268,13 +261,10 @@
 
   <div class="grid-2">
     <div class="card">
-      <div class="card-header-sub">
-        <span class="sub">Carboidratos</span>
-        <span class="meta-discrete"><span id="meta-carb-txt">200</span>g</span>
-      </div>
-      <div class="val txt-carb">
-        <span id="carb-val">0.0</span>
-        <span class="val-target">/ <span id="carb-target">200</span>g</span>
+      <span class="sub">Carboidratos</span>
+      <div class="val-row">
+        <span class="val txt-carb"><span id="carb-val">0.0</span> g</span>
+        <span class="meta-red">Meta: <span id="meta-carb-txt">200</span>g</span>
       </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill fill-carb" id="carb-bar"></div>
@@ -282,13 +272,10 @@
     </div>
 
     <div class="card">
-      <div class="card-header-sub">
-        <span class="sub">Proteínas</span>
-        <span class="meta-discrete"><span id="meta-prot-txt">130</span>g</span>
-      </div>
-      <div class="val txt-prot">
-        <span id="prot-val">0.0</span>
-        <span class="val-target">/ <span id="prot-target">130</span>g</span>
+      <span class="sub">Proteínas</span>
+      <div class="val-row">
+        <span class="val txt-prot"><span id="prot-val">0.0</span> g</span>
+        <span class="meta-red">Meta: <span id="meta-prot-txt">130</span>g</span>
       </div>
       <div class="progress-bar-bg">
         <div class="progress-bar-fill fill-prot" id="prot-bar"></div>
@@ -297,13 +284,10 @@
   </div>
 
   <div class="card">
-    <div class="card-header-sub">
-      <span class="sub">Gorduras Totais</span>
-      <span class="meta-discrete"><span id="meta-fat-txt">60</span>g</span>
-    </div>
-    <div class="val txt-fat">
-      <span id="fat-val">0.0</span>
-      <span class="val-target">/ <span id="fat-target">60</span>g</span>
+    <span class="sub">Gorduras Totais</span>
+    <div class="val-row">
+      <span class="val txt-fat"><span id="fat-val">0.0</span> g</span>
+      <span class="meta-red">Meta: <span id="meta-fat-txt">60</span>g</span>
     </div>
     <div class="progress-bar-bg">
       <div class="progress-bar-fill fill-fat" id="fat-bar"></div>
@@ -366,6 +350,6 @@
     </table>
   </div>
 
-  <script src="script.js?v=11"></script>
+  <script src="script.js?v=12"></script>
 </body>
 </html>
