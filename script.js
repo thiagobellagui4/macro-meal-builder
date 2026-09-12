@@ -44,7 +44,7 @@ const saveGoalsBtn = document.getElementById('save-goals-btn');
 let refeicoes = [];
 let metas = { kcal: 1800, carb: 12, prot: 85, fat: 60 };
 let cacheProdutos = [];
-let itensManuaisSalvos = []; // Memória para alimentos cadastrados manualmente
+let itensManuaisSalvos = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem('nutrimeta_items');
@@ -59,7 +59,6 @@ document.addEventListener('DOMContentLoaded', () => {
     inputMetaFat.value = metas.fat;
   }
 
-  // Carrega itens manuais salvos na memória do app
   const manuaisSalvos = localStorage.getItem('nutrimeta_manuais');
   if (manuaisSalvos) {
     itensManuaisSalvos = JSON.parse(manuaisSalvos);
@@ -95,7 +94,6 @@ if (saveManualBtn) {
     const carb100 = parseFloat(manualCarb.value) || 0;
     const fat100 = parseFloat(manualFat.value) || 0;
 
-    // Salva o item na lista de manuais (base para 100g)
     const novoManual = {
       nome: nome,
       kcal100: kcal100,
@@ -104,15 +102,13 @@ if (saveManualBtn) {
       fat100: fat100
     };
 
-    // Remove se já existir com o mesmo nome para atualizar
     itensManuaisSalvos = itensManuaisSalvos.filter(i => i.nome.toLowerCase() !== nome.toLowerCase());
     itensManuaisSalvos.push(novoManual);
     localStorage.setItem('nutrimeta_manuais', JSON.stringify(itensManuaisSalvos));
 
-    // Calcula a proporção para adicionar na refeição atual
     const fator = gramas / 100;
     adicionarPrato(
-      nome + " (Manual)",
+      nome,
       gramas,
       kcal100 * fator,
       prot100 * fator,
@@ -133,7 +129,36 @@ function limparCamposManuais() {
   manualFat.value = '';
 }
 
-// Sistema de Busca com prioridade absoluta para itens manuais salvos
+// Função inteligente de busca priorizando o banco do Brasil com Fallback seguro
+async function buscarProdutosOFF(termo) {
+  try {
+    // Tenta primeiro o banco exclusivo do Brasil
+    const resBr = await fetch(`https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=15`);
+    const dataBr = await resBr.json();
+    if (dataBr.products && dataBr.products.length > 0) {
+      return dataBr.products;
+    }
+  } catch (e) {
+    // Se falhar o servidor do BR, ignora e tenta o global abaixo
+  }
+
+  // Fallback: Se não achar nada no BR, busca no global filtrando apenas o que é do Brasil ou português
+  try {
+    const resGlobal = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=20`);
+    const dataGlobal = await resGlobal.json();
+    if (dataGlobal.products) {
+      return dataGlobal.products.filter(p => {
+        const isBrasil = p.countries_tags && p.countries_tags.some(c => c.includes('brazil'));
+        const isPt = p.product_name_pt;
+        return isBrasil || isPt;
+      });
+    }
+  } catch (e) {
+    // Retorna vazio se ambos falharem
+  }
+  return [];
+}
+
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -148,7 +173,7 @@ if (foodInput) {
       foodSuggestions.innerHTML = '';
       cacheProdutos = [];
 
-      // 1. Filtra primeiro nos itens manuais salvos pelo usuário
+      // 1. Itens Manuais Salvos aparecem SEMPRE primeiro com destaque
       const manuaisFiltrados = itensManuaisSalvos.filter(i => i.nome.toLowerCase().includes(termo));
       
       manuaisFiltrados.forEach(m => {
@@ -162,7 +187,6 @@ if (foodInput) {
         });
         foodSuggestions.appendChild(div);
 
-        // Guarda no cache como objeto customizado para o botão "Buscar" reconhecer
         cacheProdutos.push({
           isManual: true,
           product_name: m.nome,
@@ -175,47 +199,35 @@ if (foodInput) {
         });
       });
 
-      // 2. Busca na API Global os demais itens da internet
-      try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=15`;
-        const res = await fetch(url);
-        const data = await res.json();
+      // 2. Busca focada no mercado brasileiro
+      const produtosWeb = await buscarProdutosOFF(termo);
+      
+      produtosWeb.forEach(p => {
+        const nome = p.product_name_pt || p.product_name;
+        if (!nome) return;
         
-        if (data.products && data.products.length > 0) {
-          const webProdutos = data.products.filter(p => {
-            const nome = p.product_name_pt || p.product_name || '';
-            const temNutri = p.nutriments && (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments['energy-kcal'] !== undefined);
-            const lixoEstrangeiro = /biculture|bonpreu|nomen|catala|superu/i.test(JSON.stringify(p));
-            return temNutri && nome.length > 0 && !lixoEstrangeiro;
-          });
+        const marca = p.brands ? ` • ${p.brands}` : '';
+        const seloBr = ' 🇧🇷';
+        
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}${seloBr}</span>`;
+        
+        div.addEventListener('click', () => {
+          foodInput.value = nome + (p.brands ? ` (${p.brands})` : '');
+          foodSuggestions.style.display = 'none';
+        });
+        foodSuggestions.appendChild(div);
 
-          webProdutos.forEach(p => {
-            const nome = p.product_name_pt || p.product_name;
-            const marca = p.brands ? ` • ${p.brands}` : '';
-            
-            const div = document.createElement('div');
-            div.className = 'suggestion-item';
-            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}</span>`;
-            
-            div.addEventListener('click', () => {
-              foodInput.value = nome + (p.brands ? ` (${p.brands})` : '');
-              foodSuggestions.style.display = 'none';
-            });
-            foodSuggestions.appendChild(div);
-
-            cacheProdutos.push(p);
-          });
-        }
-      } catch (err) {
-        // Ignora erros de rede na busca em segundo plano
-      }
+        cacheProdutos.push(p);
+      });
 
       if (foodSuggestions.children.length > 0) {
         foodSuggestions.style.display = 'block';
       } else {
         foodSuggestions.style.display = 'none';
       }
-    }, 300);
+    }, 400);
   });
 
   document.addEventListener('click', (e) => {
@@ -239,14 +251,12 @@ async function buscarPorNome() {
 
   const fator = gramas / 100;
   try {
-    // Procura primeiro no cache (priorizando itens manuais ou selecionados)
     let p = cacheProdutos.find(prod => {
       const nomeProd = (prod.product_name_pt || prod.product_name || '').toLowerCase();
       const nomeComMarca = (nomeProd + (prod.brands ? ` (${prod.brands.toLowerCase()})` : '')).toLowerCase();
       return nomeComMarca.includes(termoInput) || termoInput.includes(nomeProd);
     });
     
-    // Se não achar no cache imediato, tenta buscar um manual exato salvo
     if (!p) {
       const manualEncontrado = itensManuaisSalvos.find(i => i.nome.toLowerCase() === termoInput);
       if (manualEncontrado) {
@@ -282,7 +292,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo!");
+      alert("Alimento não encontrado no Brasil. Cadastre-o rapidamente com o botão '+ Manual'!");
     }
   } catch (e) {
     alert("Erro ao processar o alimento.");
