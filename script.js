@@ -4,6 +4,17 @@ const portionInput = document.getElementById('portion-input');
 const searchBtn = document.getElementById('search-btn');
 const mealsTableBody = document.getElementById('meals-table-body');
 
+// Elementos do Modal Manual
+const openManualBtn = document.getElementById('open-manual-btn');
+const manualCard = document.getElementById('manual-card');
+const cancelManualBtn = document.getElementById('cancel-manual-btn');
+const saveManualBtn = document.getElementById('save-manual-btn');
+const manualName = document.getElementById('manual-name');
+const manualKcal = document.getElementById('manual-kcal');
+const manualProt = document.getElementById('manual-prot');
+const manualCarb = document.getElementById('manual-carb');
+const manualFat = document.getElementById('manual-fat');
+
 const kcalVal = document.getElementById('kcal-val');
 const kcalBar = document.getElementById('kcal-bar');
 const dispMetaKcal = document.getElementById('disp-meta-kcal');
@@ -49,7 +60,58 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// Pesquisa inteligente combinada (Global + Foco em termos em Português)
+// Ações do Modal Manual
+if (openManualBtn) {
+  openManualBtn.addEventListener('click', () => {
+    manualCard.style.display = 'block';
+    foodSuggestions.style.display = 'none';
+  });
+}
+
+if (cancelManualBtn) {
+  cancelManualBtn.addEventListener('click', () => {
+    manualCard.style.display = 'none';
+    limparCamposManuais();
+  });
+}
+
+if (saveManualBtn) {
+  saveManualBtn.addEventListener('click', () => {
+    const nome = manualName.value.trim();
+    const gramas = parseFloat(portionInput.value) || 100;
+    
+    if (!nome) return alert("Digite o nome do alimento.");
+
+    const kcal100 = parseFloat(manualKcal.value) || 0;
+    const prot100 = parseFloat(manualProt.value) || 0;
+    const carb100 = parseFloat(manualCarb.value) || 0;
+    const fat100 = parseFloat(manualFat.value) || 0;
+
+    const fator = gramas / 100;
+
+    adicionarPrato(
+      nome,
+      gramas,
+      kcal100 * fator,
+      prot100 * fator,
+      carb100 * fator,
+      fat100 * fator
+    );
+
+    manualCard.style.display = 'none';
+    limparCamposManuais();
+  });
+}
+
+function limparCamposManuais() {
+  manualName.value = '';
+  manualKcal.value = '';
+  manualProt.value = '';
+  manualCarb.value = '';
+  manualFat.value = '';
+}
+
+// Pesquisa inteligente combinada
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -62,13 +124,11 @@ if (foodInput) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       try {
-        // Usamos a base global mas exigimos que tenha dados nutricionais e priorizamos itens em PT ou do Brasil
         const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=15`;
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          // Filtra apenas produtos que tenham nome e tabela nutricional preenchida
           cacheProdutos = data.products.filter(p => 
             (p.product_name_pt || p.product_name) && 
             p.nutriments && 
@@ -105,9 +165,8 @@ if (foodInput) {
     }, 300);
   });
 
-  // Fecha se clicar fora
   document.addEventListener('click', (e) => {
-    if (!foodInput.contains(e.target) && !foodSuggestions.contains(e.target)) {
+    if (!foodInput.contains(e.target) && !foodSuggestions.contains(e.target) && !manualCard.contains(e.target) && !openManualBtn.contains(e.target)) {
       foodSuggestions.style.display = 'none';
     }
   });
@@ -154,12 +213,12 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado.");
+      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo!");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
   } finally {
-    searchBtn.textContent = "Buscar e Adicionar";
+    searchBtn.textContent = "Buscar na Web";
     searchBtn.disabled = false;
   }
 }
@@ -234,7 +293,6 @@ function atualizarTela() {
   txtMetaProt.textContent = metas.prot;
   protBar.style.width = `${Math.min(100, (tp / metas.prot) * 100)}%`;
 
-  fatVal.textContent = tf.TextField ? tf.TextField : tf.toFixed(1);
   fatVal.textContent = tf.toFixed(1);
   dispMetaFat.textContent = metas.fat;
   txtMetaFat.textContent = metas.fat;
