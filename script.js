@@ -1,4 +1,3 @@
-
 const foodInput = document.getElementById('food-input');
 const foodSuggestions = document.getElementById('food-suggestions');
 const portionInput = document.getElementById('portion-input');
@@ -45,6 +44,7 @@ const saveGoalsBtn = document.getElementById('save-goals-btn');
 let refeicoes = [];
 let metas = { kcal: 1800, carb: 12, prot: 85, fat: 60 };
 let cacheProdutos = [];
+let itensManuaisSalvos = []; // Memória para alimentos cadastrados manualmente
 
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem('nutrimeta_items');
@@ -58,6 +58,13 @@ document.addEventListener('DOMContentLoaded', () => {
     inputMetaProt.value = metas.prot;
     inputMetaFat.value = metas.fat;
   }
+
+  // Carrega itens manuais salvos na memória do app
+  const manuaisSalvos = localStorage.getItem('nutrimeta_manuais');
+  if (manuaisSalvos) {
+    itensManuaisSalvos = JSON.parse(manuaisSalvos);
+  }
+
   atualizarTela();
 });
 
@@ -88,10 +95,24 @@ if (saveManualBtn) {
     const carb100 = parseFloat(manualCarb.value) || 0;
     const fat100 = parseFloat(manualFat.value) || 0;
 
-    const fator = gramas / 100;
+    // Salva o item na lista de manuais (base para 100g)
+    const novoManual = {
+      nome: nome,
+      kcal100: kcal100,
+      prot100: prot100,
+      carb100: carb100,
+      fat100: fat100
+    };
 
+    // Remove se já existir com o mesmo nome para atualizar
+    itensManuaisSalvos = itensManuaisSalvos.filter(i => i.nome.toLowerCase() !== nome.toLowerCase());
+    itensManuaisSalvos.push(novoManual);
+    localStorage.setItem('nutrimeta_manuais', JSON.stringify(itensManuaisSalvos));
+
+    // Calcula a proporção para adicionar na refeição atual
+    const fator = gramas / 100;
     adicionarPrato(
-      nome,
+      nome + " (Manual)",
       gramas,
       kcal100 * fator,
       prot100 * fator,
@@ -112,11 +133,11 @@ function limparCamposManuais() {
   manualFat.value = '';
 }
 
-// Sistema de Busca Estável e Limpo (API Global com Filtro de Idioma PT/BR)
+// Sistema de Busca com prioridade absoluta para itens manuais salvos
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
-    const termo = e.target.value.trim();
+    const termo = e.target.value.trim().toLowerCase();
     if (termo.length < 2) {
       foodSuggestions.style.display = 'none';
       return;
@@ -124,57 +145,74 @@ if (foodInput) {
 
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
+      foodSuggestions.innerHTML = '';
+      cacheProdutos = [];
+
+      // 1. Filtra primeiro nos itens manuais salvos pelo usuário
+      const manuaisFiltrados = itensManuaisSalvos.filter(i => i.nome.toLowerCase().includes(termo));
+      
+      manuaisFiltrados.forEach(m => {
+        const div = document.createElement('div');
+        div.className = 'suggestion-item';
+        div.innerHTML = `⭐ <strong>${m.nome}</strong> <span style="color:var(--accent-green); font-size:0.8rem;">(Salvo Manual)</span>`;
+        
+        div.addEventListener('click', () => {
+          foodInput.value = m.nome;
+          foodSuggestions.style.display = 'none';
+        });
+        foodSuggestions.appendChild(div);
+
+        // Guarda no cache como objeto customizado para o botão "Buscar" reconhecer
+        cacheProdutos.push({
+          isManual: true,
+          product_name: m.nome,
+          nutriments: {
+            'energy-kcal_100g': m.kcal100,
+            proteins_100g: m.prot100,
+            carbohydrates_100g: m.carb100,
+            fat_100g: m.fat100
+          }
+        });
+      });
+
+      // 2. Busca na API Global os demais itens da internet
       try {
-        // Usando a API global estável do Open Food Facts
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=30`;
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=15`;
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          // Filtro para aceitar apenas itens que tenham dados nutricionais e preferência por PT ou Brasil
-          cacheProdutos = data.products.filter(p => {
+          const webProdutos = data.products.filter(p => {
             const nome = p.product_name_pt || p.product_name || '';
             const temNutri = p.nutriments && (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments['energy-kcal'] !== undefined);
-            
-            // Remove lixo estrangeiro óbvio (como catalão, francês sem tradução, etc)
             const lixoEstrangeiro = /biculture|bonpreu|nomen|catala|superu/i.test(JSON.stringify(p));
-
             return temNutri && nome.length > 0 && !lixoEstrangeiro;
           });
 
-          // Ordena para colocar itens do Brasil ou em português no topo
-          cacheProdutos.sort((a, b) => {
-            const aPt = (a.countries_tags && a.countries_tags.some(c => c.includes('brazil'))) || a.product_name_pt ? 1 : 0;
-            const bPt = (b.countries_tags && b.countries_tags.some(c => c.includes('brazil'))) || b.product_name_pt ? 1 : 0;
-            return bPt - aPt;
-          });
-          
-          foodSuggestions.innerHTML = '';
-          cacheProdutos.slice(0, 10).forEach(p => {
+          webProdutos.forEach(p => {
             const nome = p.product_name_pt || p.product_name;
             const marca = p.brands ? ` • ${p.brands}` : '';
-            const isBr = (p.countries_tags && p.countries_tags.some(c => c.includes('brazil'))) ? ' 🇧🇷' : '';
             
             const div = document.createElement('div');
             div.className = 'suggestion-item';
-            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}${isBr}</span>`;
+            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}</span>`;
             
             div.addEventListener('click', () => {
               foodInput.value = nome + (p.brands ? ` (${p.brands})` : '');
               foodSuggestions.style.display = 'none';
             });
             foodSuggestions.appendChild(div);
+
+            cacheProdutos.push(p);
           });
-          
-          if (cacheProdutos.length > 0) {
-            foodSuggestions.style.display = 'block';
-          } else {
-            foodSuggestions.style.display = 'none';
-          }
-        } else {
-          foodSuggestions.style.display = 'none';
         }
       } catch (err) {
+        // Ignora erros de rede na busca em segundo plano
+      }
+
+      if (foodSuggestions.children.length > 0) {
+        foodSuggestions.style.display = 'block';
+      } else {
         foodSuggestions.style.display = 'none';
       }
     }, 300);
@@ -191,9 +229,9 @@ if (searchBtn) searchBtn.addEventListener('click', buscarPorNome);
 if (saveGoalsBtn) saveGoalsBtn.addEventListener('click', salvarMetas);
 
 async function buscarPorNome() {
-  const termo = foodInput.value.trim();
+  const termoInput = foodInput.value.trim().toLowerCase();
   const gramas = parseFloat(portionInput.value) || 100;
-  if (!termo) return alert("Digite ou selecione o nome do alimento.");
+  if (!termoInput) return alert("Digite ou selecione o nome do alimento.");
 
   foodSuggestions.style.display = 'none';
   searchBtn.textContent = "Buscando...";
@@ -201,16 +239,27 @@ async function buscarPorNome() {
 
   const fator = gramas / 100;
   try {
+    // Procura primeiro no cache (priorizando itens manuais ou selecionados)
     let p = cacheProdutos.find(prod => {
-      const nomeCompleto = (prod.product_name_pt || prod.product_name) + (prod.brands ? ` (${prod.brands})` : '');
-      return nomeCompleto === termo || (prod.product_name_pt === termo || prod.product_name === termo);
+      const nomeProd = (prod.product_name_pt || prod.product_name || '').toLowerCase();
+      const nomeComMarca = (nomeProd + (prod.brands ? ` (${prod.brands.toLowerCase()})` : '')).toLowerCase();
+      return nomeComMarca.includes(termoInput) || termoInput.includes(nomeProd);
     });
     
+    // Se não achar no cache imediato, tenta buscar um manual exato salvo
     if (!p) {
-      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=5`);
-      const data = await res.json();
-      if (data.products && data.products.length > 0) {
-        p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
+      const manualEncontrado = itensManuaisSalvos.find(i => i.nome.toLowerCase() === termoInput);
+      if (manualEncontrado) {
+        p = {
+          isManual: true,
+          product_name: manualEncontrado.nome,
+          nutriments: {
+            'energy-kcal_100g': manualEncontrado.kcal100,
+            proteins_100g: manualEncontrado.prot100,
+            carbohydrates_100g: manualEncontrado.carb100,
+            fat_100g: manualEncontrado.fat100
+          }
+        };
       }
     }
 
@@ -221,7 +270,7 @@ async function buscarPorNome() {
       const carb100 = n.carbohydrates_100g || n.carbohydrates || 0;
       const fat100 = n.fat_100g || n.fat || 0;
 
-      const nomeExibicao = (p.product_name_pt || p.product_name) + (p.brands ? ` (${p.brands})` : '');
+      const nomeExibicao = p.isManual ? p.product_name : ((p.product_name_pt || p.product_name) + (p.brands ? ` (${p.brands})` : ''));
 
       adicionarPrato(
         nomeExibicao,
@@ -233,10 +282,10 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo rapidamente!");
+      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo!");
     }
   } catch (e) {
-    alert("Erro ao conectar com o banco de dados.");
+    alert("Erro ao processar o alimento.");
   } finally {
     searchBtn.textContent = "Buscar na Web";
     searchBtn.disabled = false;
