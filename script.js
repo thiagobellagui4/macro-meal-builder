@@ -49,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
-// Pesquisa global em tempo real na base de dados
+// Pesquisa direcionada primariamente para a base do Brasil (br.openfoodfacts.org)
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -62,19 +62,21 @@ if (foodInput) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       try {
-        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=12`);
+        // Busca focada no Open Food Facts Brasil
+        const res = await fetch(`https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=12`);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          // Filtra apenas produtos que tenham nome válido para evitar lixo da API
+          // Filtra produtos que tenham nome válido e prioriza os que têm tabela nutricional
           cacheProdutos = data.products.filter(p => (p.product_name_pt || p.product_name));
           
           foodSuggestions.innerHTML = '';
           cacheProdutos.forEach(p => {
             const nome = p.product_name_pt || p.product_name;
+            const marca = p.brands ? ` (${p.brands})` : '';
             const div = document.createElement('div');
             div.className = 'suggestion-item';
-            div.textContent = nome;
+            div.textContent = nome + marca;
             div.addEventListener('click', () => {
               foodInput.value = nome;
               foodSuggestions.style.display = 'none';
@@ -118,10 +120,10 @@ async function buscarPorNome() {
 
   const fator = gramas / 100;
   try {
-    let p = cacheProdutos.find(prod => (prod.product_name_pt === termo || prod.product_name === termo));
+    let p = cacheProdutos.find(prod => (prod.product_name_pt === termo || prod.product_name === termo || `${prod.product_name_pt || prod.product_name} (${prod.brands})` === termo));
     
     if (!p) {
-      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`);
+      const res = await fetch(`https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`);
       const data = await res.json();
       if (data.products && data.products.length > 0) {
         p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
@@ -145,7 +147,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado na base global.");
+      alert("Alimento não encontrado na base brasileira.");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
