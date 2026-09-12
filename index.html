@@ -10,7 +10,6 @@
       --card-bg: #1e293b;
       --input-bg: #334155;
       --accent-green: #10b981;
-      --accent-blue: #3b82f6;
       --accent-orange: #f59e0b;
       --secondary: #475569;
       --text: #f8fafc;
@@ -34,14 +33,14 @@
     .val { font-size: 1.25rem; font-weight: 800; }
     .progress-bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 999px; overflow: hidden; }
     .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; background-color: var(--accent-orange); }
-    input, button, label.btn-camera {
-      width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem; text-align: center; display: block;
+    input, button {
+      width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem;
     }
-    input { background: var(--input-bg); color: var(--text); text-align: left; }
+    input { background: var(--input-bg); color: var(--text); }
     button { background: var(--accent-green); color: #fff; font-weight: bold; cursor: pointer; }
-    .btn-camera { background: var(--accent-blue); color: #fff; font-weight: bold; cursor: pointer; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
     th, td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
+    .btn-del { background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 0.8rem; padding: 4px; width: auto; margin: 0; }
   </style>
 </head>
 <body>
@@ -55,11 +54,7 @@
 
   <div class="card">
     <h3>+ Adicionar Alimento</h3>
-    <!-- Botão nativo que chama a câmera do Android perfeitamente -->
-    <label class="btn-camera" for="barcode-file">📷 Tirar Foto do Código de Barras</label>
-    <input type="file" id="barcode-file" accept="image/*" capture="environment" style="display:none;">
-    
-    <input type="text" id="food-input" placeholder="Ou digite o nome do alimento (ex: Frango, Arroz)...">
+    <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango, Aveia)...">
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
   </div>
@@ -68,7 +63,7 @@
     <h3>Refeições Registradas</h3>
     <table>
       <thead>
-        <tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Kcal</th></tr>
+        <tr><th>Alimento</th><th>Qtd</th><th>Prot</th><th>Kcal</th><th></th></tr>
       </thead>
       <tbody id="meals-table-body"></tbody>
     </table>
