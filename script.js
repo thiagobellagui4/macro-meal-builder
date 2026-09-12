@@ -21,9 +21,22 @@ if (camBtn) camBtn.addEventListener('click', abrirCamera);
 if (closeCamBtn) closeCamBtn.addEventListener('click', fecharCamera);
 if (searchBtn) searchBtn.addEventListener('click', buscarPorNome);
 
-function abrirCamera() {
+async function abrirCamera() {
   readerModal.style.display = 'flex';
-  html5QrCode = new Html5Qrcode("reader");
+  
+  try {
+    // Força o pedido de permissão da câmera do Android/WebView
+    await navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } });
+  } catch (err) {
+    alert("Permissão de câmera negada ou indisponível nas configurações do app.");
+    fecharCamera();
+    return;
+  }
+
+  if (!html5QrCode) {
+    html5QrCode = new Html5Qrcode("reader");
+  }
+
   html5QrCode.start(
     { facingMode: "environment" },
     { fps: 10, qrbox: { width: 250, height: 150 } },
@@ -33,7 +46,7 @@ function abrirCamera() {
     },
     (err) => {}
   ).catch(err => {
-    alert("Erro ao iniciar a câmera: " + err);
+    alert("Erro ao iniciar leitor: " + err);
     fecharCamera();
   });
 }
@@ -41,7 +54,6 @@ function abrirCamera() {
 function fecharCamera() {
   if (html5QrCode) {
     html5QrCode.stop().then(() => {
-      html5QrCode.clear();
       readerModal.style.display = 'none';
     }).catch(() => {
       readerModal.style.display = 'none';
