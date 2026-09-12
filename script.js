@@ -111,7 +111,7 @@ function limparCamposManuais() {
   manualFat.value = '';
 }
 
-// Sistema de Busca Estilo FatSecret (Focado em Marcas Nacionais e Produtos em Português)
+// Sistema de Busca Rigoroso (Focado estritamente no Brasil e Português)
 let timeoutId = null;
 if (foodInput) {
   foodInput.addEventListener('input', (e) => {
@@ -124,37 +124,32 @@ if (foodInput) {
     clearTimeout(timeoutId);
     timeoutId = setTimeout(async () => {
       try {
-        // Busca inteligente abrangendo termos globais e focando em registros do Brasil/PT
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=25`;
+        // Buscamos especificamente direcionado ao servidor brasileiro do Open Food Facts
+        const url = `https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=20`;
         const res = await fetch(url);
         const data = await res.json();
         
         if (data.products && data.products.length > 0) {
-          // Filtra itens com dados nutricionais válidos
-          let produtosValidos = data.products.filter(p => 
-            (p.product_name_pt || p.product_name) && 
-            p.nutriments && 
-            (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments['energy-kcal'] !== undefined)
-          );
+          // Filtro rígido: Exige que tenha nome em PT ou BR, dados nutricionais, e bloqueia termos estrangeiros óbvios
+          cacheProdutos = data.products.filter(p => {
+            const nome = p.product_name_pt || p.product_name || '';
+            const temNutri = p.nutriments && (p.nutriments['energy-kcal_100g'] !== undefined || p.nutriments['energy-kcal'] !== undefined);
+            const ehBrasil = (p.countries_tags && p.countries_tags.some(c => c.includes('brazil'))) || p.lang === 'pt' || p.product_name_pt;
+            
+            // Remove produtos em catalão/espanhol explícito que venham por engano
+            const contemEstrangeiroRuim = /biculture|bonpreu|nomen|catala/i.test(JSON.stringify(p));
 
-          // Ordena para priorizar marcas nacionais e itens em português (Estilo FatSecret)
-          produtosValidos.sort((a, b) => {
-            const aBr = (a.countries_tags && a.countries_tags.includes('en:brazil')) || (a.lang === 'pt') ? 1 : 0;
-            const bBr = (b.countries_tags && b.countries_tags.includes('en:brazil')) || (b.lang === 'pt') ? 1 : 0;
-            return bBr - aBr;
+            return temNutri && ehBrasil && !contemEstrangeiroRuim && nome.length > 0;
           });
-
-          cacheProdutos = produtosValidos.slice(0, 15);
           
           foodSuggestions.innerHTML = '';
-          cacheProdutos.forEach(p => {
+          cacheProdutos.slice(0, 10).forEach(p => {
             const nome = p.product_name_pt || p.product_name;
             const marca = p.brands ? ` • ${p.brands}` : '';
-            const seloBr = (p.countries_tags && p.countries_tags.includes('en:brazil')) ? ' 🇧🇷' : '';
             
             const div = document.createElement('div');
             div.className = 'suggestion-item';
-            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca}${seloBr}</span>`;
+            div.innerHTML = `<strong>${nome}</strong><span style="color:var(--subtext); font-size:0.8rem;">${marca} 🇧🇷</span>`;
             
             div.addEventListener('click', () => {
               foodInput.value = nome + (p.brands ? ` (${p.brands})` : '');
@@ -204,7 +199,7 @@ async function buscarPorNome() {
     });
     
     if (!p) {
-      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=5`);
+      const res = await fetch(`https://br.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=5`);
       const data = await res.json();
       if (data.products && data.products.length > 0) {
         p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
@@ -230,7 +225,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Use o botão '+ Manual' para cadastrá-lo rapidamente!");
+      alert("Alimento não encontrado na base nacional. Use o botão '+ Manual' para cadastrá-lo!");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
@@ -262,7 +257,7 @@ function excluirPrato(id) {
 
 function salvarMetas() {
   metas = {
-    kcal: parseFloat(inputMetaKcal.value) || 1800,
+    kcal: parseFloat(inputMetaKcal.value) / 1 || 1800,
     carb: parseFloat(inputMetaCarb.value) || 12,
     prot: parseFloat(inputMetaProt.value) || 85,
     fat: parseFloat(inputMetaFat.value) || 60
