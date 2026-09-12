@@ -57,6 +57,35 @@
     input { background: var(--input-bg); color: var(--text); border: 1px solid var(--border); }
     button { background: var(--accent-green); color: #fff; font-weight: bold; cursor: pointer; }
     
+    /* Estilo da Caixa de Sugestões Personalizada */
+    .autocomplete-container {
+      position: relative;
+    }
+    .suggestions-box {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      right: 0;
+      background-color: #1a2234;
+      border: 1px solid var(--border);
+      border-radius: 0 0 10px 10px;
+      max-height: 180px;
+      overflow-y: auto;
+      z-index: 99;
+      display: none;
+      box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+    }
+    .suggestion-item {
+      padding: 10px 12px;
+      font-size: 0.9rem;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      cursor: pointer;
+    }
+    .suggestion-item:hover {
+      background-color: var(--input-bg);
+      color: #38bdf8;
+    }
+
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.85rem; }
     th, td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
     .btn-del { background: transparent; color: #ef4444; border: none; cursor: pointer; font-size: 0.9rem; padding: 4px; width: auto; margin: 0; }
@@ -108,11 +137,13 @@
     <div class="progress-bar-bg"><div class="progress-bar-fill fill-fat" id="fat-bar"></div></div>
   </div>
 
-  <!-- Adicionar Alimento com Sugestões -->
+  <!-- Adicionar Alimento com Sugestões Customizadas -->
   <div class="card">
     <h3 style="margin-top:0; font-size:1rem; color:var(--subtext);">+ Adicionar Alimento</h3>
-    <input type="text" id="food-input" list="food-suggestions" placeholder="Digite o nome (ex: Arroz, Frango)...">
-    <datalist id="food-suggestions"></datalist>
+    <div class="autocomplete-container">
+      <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango)..." autocomplete="off">
+      <div id="food-suggestions" class="suggestions-box"></div>
+    </div>
     
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
