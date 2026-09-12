@@ -32,14 +32,6 @@
       object-fit: cover;
       margin-bottom: 8px;
     }
-    h1.title {
-      text-align: center;
-      color: #38bdf8;
-      font-size: 1.8rem;
-      margin: 10px 0 16px 0;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-    }
     .card {
       background-color: var(--card-bg);
       border-radius: 16px;
@@ -72,10 +64,8 @@
 </head>
 <body>
 
-  <!-- Banner Superior de Comida -->
   <img src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=600&q=80" alt="Meal Builder Banner" class="banner">
-  
-  <h1 class="title">Meal Builder</h1>
+  <h1 style="text-align: center; color: #38bdf8; font-size: 1.8rem; margin: 10px 0 16px 0; font-weight: 800;">Meal Builder</h1>
 
   <!-- Energia Total -->
   <div class="card">
@@ -118,10 +108,12 @@
     <div class="progress-bar-bg"><div class="progress-bar-fill fill-fat" id="fat-bar"></div></div>
   </div>
 
-  <!-- Adicionar Alimento -->
+  <!-- Adicionar Alimento com Sugestões -->
   <div class="card">
     <h3 style="margin-top:0; font-size:1rem; color:var(--subtext);">+ Adicionar Alimento</h3>
-    <input type="text" id="food-input" placeholder="Digite o nome (ex: Arroz, Frango)...">
+    <input type="text" id="food-input" list="food-suggestions" placeholder="Digite o nome (ex: Arroz, Frango)...">
+    <datalist id="food-suggestions"></datalist>
+    
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
   </div>
