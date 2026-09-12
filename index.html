@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>NutriMeta</title>
-  <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
       --bg: #0f172a;
@@ -35,20 +34,14 @@
     .val { font-size: 1.25rem; font-weight: 800; }
     .progress-bar-bg { width: 100%; height: 8px; background-color: var(--border); border-radius: 999px; overflow: hidden; }
     .progress-bar-fill { height: 100%; width: 0%; border-radius: 999px; transition: width 0.4s ease; background-color: var(--accent-orange); }
-    input, button {
-      width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem;
+    input, button, label.btn-camera {
+      width: 100%; padding: 12px; margin-top: 8px; border-radius: 10px; border: none; box-sizing: border-box; font-size: 0.95rem; text-align: center; display: block;
     }
-    input { background: var(--input-bg); color: var(--text); }
+    input { background: var(--input-bg); color: var(--text); text-align: left; }
     button { background: var(--accent-green); color: #fff; font-weight: bold; cursor: pointer; }
-    .btn-camera { background: var(--accent-blue); }
-    .btn-sec { background: var(--secondary); }
+    .btn-camera { background: var(--accent-blue); color: #fff; font-weight: bold; cursor: pointer; }
     table { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 0.88rem; }
     th, td { padding: 8px 4px; border-bottom: 1px solid rgba(255,255,255,0.05); text-align: left; }
-    #reader-modal {
-      display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-      background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; align-items: center; justify-content: center; padding: 16px;
-    }
-    #reader { width: 100%; max-width: 320px; min-height: 250px; background: #111; border-radius: 12px; overflow: hidden; margin-bottom: 16px; }
   </style>
 </head>
 <body>
@@ -62,8 +55,11 @@
 
   <div class="card">
     <h3>+ Adicionar Alimento</h3>
-    <button id="cam-btn" class="btn-camera" type="button">📷 Escanear Código de Barras</button>
-    <input type="text" id="food-input" placeholder="Ou digite o nome do alimento...">
+    <!-- Botão nativo que chama a câmera do Android perfeitamente -->
+    <label class="btn-camera" for="barcode-file">📷 Tirar Foto do Código de Barras</label>
+    <input type="file" id="barcode-file" accept="image/*" capture="environment" style="display:none;">
+    
+    <input type="text" id="food-input" placeholder="Ou digite o nome do alimento (ex: Frango, Arroz)...">
     <input type="number" id="portion-input" value="100" placeholder="Gramas">
     <button id="search-btn" type="button">Buscar e Adicionar</button>
   </div>
@@ -76,11 +72,6 @@
       </thead>
       <tbody id="meals-table-body"></tbody>
     </table>
-  </div>
-
-  <div id="reader-modal">
-    <div id="reader"></div>
-    <button id="close-cam-btn" class="btn-sec">Fechar Câmera</button>
   </div>
 
   <script src="script.js"></script>
