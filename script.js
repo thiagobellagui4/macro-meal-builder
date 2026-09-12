@@ -1,4 +1,5 @@
 const foodInput = document.getElementById('food-input');
+const foodSuggestions = document.getElementById('food-suggestions');
 const portionInput = document.getElementById('portion-input');
 const searchBtn = document.getElementById('search-btn');
 const mealsTableBody = document.getElementById('meals-table-body');
@@ -31,6 +32,7 @@ const saveGoalsBtn = document.getElementById('save-goals-btn');
 
 let refeicoes = [];
 let metas = { kcal: 1800, carb: 12, prot: 85, fat: 60 };
+let cacheProdutos = [];
 
 document.addEventListener('DOMContentLoaded', () => {
   const salvas = localStorage.getItem('nutrimeta_items');
@@ -47,6 +49,57 @@ document.addEventListener('DOMContentLoaded', () => {
   atualizarTela();
 });
 
+// Evento de digitação para buscar e abrir a caixa de sugestões
+let timeoutId = null;
+if (foodInput) {
+  foodInput.addEventListener('input', (e) => {
+    const termo = e.target.value.trim();
+    if (termo.length < 2) {
+      foodSuggestions.style.display = 'none';
+      return;
+    }
+
+    clearTimeout(timeoutId);
+    timeoutId = setTimeout(async () => {
+      try {
+        const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1&page_size=8`);
+        const data = await res.json();
+        
+        if (data.products && data.products.length > 0) {
+          cacheProdutos = data.products;
+          foodSuggestions.innerHTML = '';
+          
+          data.products.forEach(p => {
+            const nome = p.product_name_pt || p.product_name;
+            if (nome) {
+              const div = document.createElement('div');
+              div.className = 'suggestion-item';
+              div.textContent = nome;
+              div.addEventListener('click', () => {
+                foodInput.value = nome;
+                foodSuggestions.style.display = 'none';
+              });
+              foodSuggestions.appendChild(div);
+            }
+          });
+          foodSuggestions.style.display = 'block';
+        } else {
+          foodSuggestions.style.display = 'none';
+        }
+      } catch (err) {
+        foodSuggestions.style.display = 'none';
+      }
+    }, 400);
+  });
+
+  // Fecha a lista se clicar fora
+  document.addEventListener('click', (e) => {
+    if (!foodInput.contains(e.target) && !foodSuggestions.contains(e.target)) {
+      foodSuggestions.style.display = 'none';
+    }
+  });
+}
+
 if (searchBtn) searchBtn.addEventListener('click', buscarPorNome);
 if (saveGoalsBtn) saveGoalsBtn.addEventListener('click', salvarMetas);
 
@@ -55,19 +108,24 @@ async function buscarPorNome() {
   const gramas = parseFloat(portionInput.value) || 100;
   if (!termo) return alert("Digite o nome do alimento.");
 
+  foodSuggestions.style.display = 'none';
   searchBtn.textContent = "Buscando...";
   searchBtn.disabled = true;
 
   const fator = gramas / 100;
   try {
-    const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`);
-    const data = await res.json();
+    let p = cacheProdutos.find(prod => (prod.product_name_pt === termo || prod.product_name === termo));
+    
+    if (!p) {
+      const res = await fetch(`https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(termo)}&search_simple=1&action=process&json=1`);
+      const data = await res.json();
+      if (data.products && data.products.length > 0) {
+        p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
+      }
+    }
 
-    if (data.products && data.products.length > 0) {
-      // Procura o primeiro produto que tenha pelo menos calorias cadastradas
-      let p = data.products.find(prod => prod.nutriments && (prod.nutriments['energy-kcal_100g'] || prod.nutriments['energy-kcal'])) || data.products[0];
+    if (p) {
       const n = p.nutriments || {};
-
       const kcal100 = n['energy-kcal_100g'] || n['energy-kcal'] || 0;
       const prot100 = n.proteins_100g || n.proteins || 0;
       const carb100 = n.carbohydrates_100g || n.carbohydrates || 0;
@@ -83,7 +141,7 @@ async function buscarPorNome() {
       );
       foodInput.value = '';
     } else {
-      alert("Alimento não encontrado. Tente buscar um termo mais genérico (ex: 'Creme de leite' em vez da marca exata).");
+      alert("Alimento não encontrado.");
     }
   } catch (e) {
     alert("Erro ao conectar com o banco de dados.");
